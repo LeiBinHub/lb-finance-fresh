@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>美股简报</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1917;
+      --muted: #57534e;
+      --line: #e7e5e4;
+      --paper: #fafaf9;
+      --card: #ffffff;
+      --accent: #9a3412;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 16px/1.55 "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    header, main { max-width: 980px; margin: 0 auto; padding: 28px 20px; }
+    header { padding-bottom: 0; }
+    h1 { font-size: 28px; font-weight: 600; margin: 0 0 6px; }
+    p.note { margin: 0; color: var(--muted); font-size: 14px; }
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: end;
+      margin: 22px 0 8px;
+    }
+    label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+    input[type="date"] {
+      font: inherit;
+      font-size: 15px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 8px;
+    }
+    button.action {
+      font: inherit;
+      font-size: 15px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+    button.action.secondary { background: var(--card); color: var(--ink); border-color: var(--line); }
+    button.action:disabled { opacity: 0.55; cursor: wait; }
+    .status { min-height: 1.4em; color: var(--muted); font-size: 14px; }
+    .status.error { color: #9f1239; }
+    .layout { display: grid; grid-template-columns: 220px 1fr; gap: 18px; margin-top: 12px; }
+    nav.menu {
+      display: grid;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--card);
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    nav.menu button {
+      font: inherit;
+      text-align: left;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    nav.menu button.sub { padding-left: 28px; font-size: 15px; color: var(--muted); }
+    nav.menu button:last-child { border-bottom: 0; }
+    nav.menu button.active { background: #fff7ed; color: var(--ink); }
+    ul#list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+    ul#list li button {
+      width: 100%;
+      font: inherit;
+      text-align: left;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
+      color: var(--ink);
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    ul#list li:last-child button { border-bottom: 0; }
+    ul#list li button.active { background: #fff7ed; }
+    pre, #brief, ol#sources, #log {
+      margin: 0;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      min-height: 280px;
+    }
+    #brief {
+      white-space: pre-wrap;
+      font: 15px/1.6 "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", serif;
+      padding: 18px;
+    }
+    #brief .value { color: #b91c1c; font-weight: 650; }
+    #brief table.sessions {
+      width: min(100%, 440px);
+      margin: 8px 0 16px;
+      font-size: 14px;
+      border-collapse: collapse;
+    }
+    #brief table.sessions th, #brief table.sessions td {
+      border: 1px solid var(--line);
+      padding: 6px 10px;
+      vertical-align: middle;
+    }
+    #brief table.sessions th { background: #fff7ed; }
+    #brief table.sessions .up { color: #b91c1c; font-weight: 650; }
+    #brief table.sessions .down { color: #047857; font-weight: 650; }
+    #brief .mover-note { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+    #brief .chart-wrap {
+      position: relative;
+      margin: 4px 0 14px;
+    }
+    #brief svg.chart { display: block; width: 100%; height: auto; margin: 0; overflow: visible; }
+    #brief .chart-tip {
+      position: absolute;
+      z-index: 2;
+      min-width: 120px;
+      background: #1c1917;
+      color: #fffaf7;
+      font: 12px/1.45 ui-sans-serif, system-ui, sans-serif;
+      padding: 7px 9px;
+      border-radius: 6px;
+      pointer-events: none;
+      transform: translate(-50%, calc(-100% - 10px));
+      box-shadow: 0 8px 18px rgba(28, 25, 23, 0.18);
+    }
+    #brief .chart-tip[hidden] { display: none; }
+    #brief .chart-tip .k { color: #d6d3d1; }
+    #brief svg.chart .hit { cursor: crosshair; }
+    ol#sources { margin: 0; padding: 18px 18px 18px 42px; }
+    ol#sources li { margin: 0 0 10px; }
+    ol#sources a { color: var(--accent); }
+    #fed {
+      margin: 0;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      min-height: 280px;
+      padding: 8px 0 12px;
+    }
+    #fed h2 { margin: 16px 18px 8px; font-size: 18px; }
+    #fed h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
+    #fed .meta { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    #fed .piece {
+      position: relative;
+      margin: 0 12px 14px;
+      padding: 12px 14px 56px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    #fed .body { margin: 0; font-size: 15px; line-height: 1.65; }
+    #fed .veil {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 84px;
+      border-radius: 0 0 8px 8px;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff 58%);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 14px 10px;
+    }
+    #fed .veil a { color: var(--accent); font-size: 13px; word-break: break-all; }
+    #fed .tip {
+      display: none;
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      top: 12px;
+      z-index: 3;
+      max-height: min(70vh, 420px);
+      overflow: auto;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffefb;
+      box-shadow: 0 10px 28px rgba(28, 25, 23, 0.12);
+    }
+    #fed .piece:hover .tip { display: block; }
+    #fed .tip h4 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      font-weight: 650;
+      color: var(--accent);
+    }
+    #fed .tip .note { margin: 0 0 12px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+    #fed .tip .note:last-child { margin-bottom: 0; }
+    #fed .empty { color: var(--muted); margin: 0 18px 8px; }
+    #listen {
+      margin: 0;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      min-height: 280px;
+      padding: 14px;
+    }
+    #listen h2 { margin: 0 0 6px; font-size: 16px; }
+    #listen .meta { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+    #listen-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    #listen-tabs button {
+      font: inherit;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--ink);
+      padding: 8px 12px;
+      cursor: pointer;
+      min-width: 140px;
+    }
+    #listen-tabs button.active { background: #fff7ed; border-color: #fed7aa; }
+    #listen-tabs .en { display: block; font-size: 14px; font-weight: 650; }
+    #listen-tabs .zh { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    #listen .item {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    #listen .item:last-child { border-bottom: 0; }
+    #listen .item time {
+      display: block;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 650;
+      margin: 0 0 4px;
+    }
+    #listen .item p { margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 1.55; }
+    #listen .item .zh { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    #listen .item a { color: var(--accent); font-size: 13px; }
+    #listen .empty { color: var(--muted); }
+    #listen .pager {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: end;
+      margin: 0 0 12px;
+    }
+    #listen .pager button {
+      font: inherit;
+      font-size: 14px;
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+      cursor: pointer;
+    }
+    #listen .pager button:disabled { opacity: 0.45; cursor: default; }
+    #listen .pager .count { color: var(--muted); font-size: 13px; padding-bottom: 6px; }
+    #media {
+      margin: 0;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      min-height: 280px;
+      padding: 12px 16px 18px;
+    }
+    #media .head { margin: 0 0 12px; }
+    #media .head h2 { margin: 0 0 4px; font-size: 16px; }
+    #media .head .meta { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+    #china-quotes {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffefb;
+    }
+    #china-quotes .meta { margin: 0 0 8px; }
+    #china-quotes .quote-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+      gap: 8px;
+    }
+    #china-quotes .cell {
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+    }
+    #china-quotes .cell .name { display: block; color: var(--muted); font-size: 12px; }
+    #china-quotes .cell .last { display: block; font-size: 18px; font-weight: 650; margin: 2px 0; }
+    #china-quotes .cell .chg { font-size: 13px; font-weight: 650; }
+    #china-quotes .cell .chg.up { color: #b91c1c; }
+    #china-quotes .cell .chg.down { color: #047857; }
+    #china-quotes .cell .chg.flat { color: var(--muted); }
+    #media-list {
+      list-style: none;
+      margin: 0 0 14px;
+      padding: 0;
+      display: grid;
+      gap: 6px;
+    }
+    #media-list button {
+      width: 100%;
+      font: inherit;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--ink);
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    #media-list button.active { background: #fff7ed; }
+    #media-body { margin: 0; }
+    #media-body.empty { color: var(--muted); white-space: pre-wrap; }
+    #media-body .lang { margin: 0 0 18px; }
+    #media-body .lang h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 650;
+    }
+    #media-body .lang .copy {
+      white-space: pre-wrap;
+      font-size: 15px;
+      line-height: 1.7;
+      margin: 0;
+    }
+    #media-body .divider {
+      border: 0;
+      border-top: 1px solid var(--line);
+      margin: 18px 0;
+    }
+    #calendar {
+      margin: 0;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      min-height: 280px;
+      padding: 8px 18px 18px;
+    }
+    #calendar .zh, #calendar .en { display: block; }
+    #calendar .zh { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    #calendar .range { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 12px; }
+    #calendar .empty { color: var(--muted); }
+    #calendar .grid {
+      width: 100%;
+      margin-top: 14px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 13px;
+    }
+    #calendar .grid th, #calendar .grid td {
+      width: 20%;
+      text-align: left;
+      vertical-align: top;
+      padding: 8px 8px;
+      border: 1px solid var(--line);
+      word-break: break-word;
+    }
+    #calendar .grid th {
+      color: var(--ink);
+      font-weight: 600;
+      background: #fafaf9;
+    }
+    #log { padding: 14px; }
+    #log h2 { margin: 0 0 8px; font-size: 16px; }
+    #log .empty, ol#sources .empty { color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 600; }
+    td.address { word-break: break-all; }
+    @media (max-width: 720px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>美股简报</h1>
+      <p class="note">日期用来打开已保存的简报。点「获取当前时报」会拉取此刻最新数据，并生成一篇美国宏观媒体文章。盘前和复盘仍按原来的定时任务自动跑。左侧媒体文章下有美国宏观、美国微观和中国微观。</p>
+</header>
+<main>
+  <div class="bar">
+    <label>日期
+      <input id="day" type="date">
+    </label>
+    <button id="now" class="action" type="button">获取当前时报</button>
+  </div>
+  <p id="status" class="status"></p>
+  <div class="layout">
+    <aside>
+      <nav class="menu">
+        <button type="button" data-view="brief" class="active">美股简报</button>
+                <button type="button" data-view="sources" class="sub">参考数源</button>
+        <button type="button" data-view="calendar" class="sub">财经日历</button>
+        <button type="button" data-view="fed">美联储官方讯息</button>
+        <button type="button" data-view="listen">监听消息</button>
+        <button type="button" data-view="media">媒体文章</button>
+        <button type="button" data-view="media" data-desk="us-macro" class="sub">美国宏观</button>
+        <button type="button" data-view="media" data-desk="us-micro" class="sub">美国微观</button>
+        <button type="button" data-view="media" data-desk="cn-micro" class="sub">中国微观</button>
+        <button type="button" data-view="log">请求日志</button>
+      </nav>
+      <ul id="list"></ul>
+    </aside>
+    <div>
+      <div id="brief">选一个日期打开已有简报，或点「获取当前时报」拉取此刻最新数据。</div>
+      <ol id="sources" hidden></ol>
+      <section id="fed" hidden></section>
+      <section id="calendar" hidden>
+        <div class="range">
+          <label>开始
+            <input id="cal-from" type="date">
+          </label>
+          <label>结束
+            <input id="cal-to" type="date">
+          </label>
+        </div>
+        <div id="cal-body"></div>
+      </section>
+      <section id="listen" hidden>
+        <h2>监听消息</h2>
+        <p class="meta" id="listen-meta">正在接入 Telegram 频道…</p>
+        <div class="pager">
+          <button type="button" id="listen-prev">前一天</button>
+          <label>日期
+            <input id="listen-day" type="date">
+          </label>
+          <button type="button" id="listen-next">后一天</button>
+          <span class="count" id="listen-page"></span>
+        </div>
+        <nav class="listen-tabs" id="listen-tabs"></nav>
+        <div id="listen-body"></div>
+      </section>
+      <section id="media" hidden>
+        <div class="head">
+          <h2 id="media-title">美国宏观</h2>
+          <p class="meta" id="media-hint">获取时报或盘前复盘后会自动生成。</p>
+          <div id="china-quotes" hidden>
+            <p class="meta" id="china-quotes-meta">正在拉取腾讯行情…</p>
+            <div class="quote-grid" id="china-quotes-grid"></div>
+          </div>
+          <button id="media-generate" class="action" type="button" hidden>生成文章</button>
+        </div>
+        <ul id="media-list"></ul>
+        <div id="media-body" class="empty">选一篇媒体文章。</div>
+      </section>
+      <section id="log" hidden>
+        <h2>请求日志</h2>
+        <p class="empty" id="log-note">容器里最近的失败会记在这里，重启后仍能打开。也可以用 <code>docker compose logs -f app</code> 看完整输出。</p>
+        <table>
+          <thead>
+            <tr><th>接口</th><th>请求时间</th><th>地址</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+</main>
+<script>
+  const day = document.querySelector("#day");
+  const list = document.querySelector("#list");
+  const brief = document.querySelector("#brief");
+  const sources = document.querySelector("#sources");
+  const fed = document.querySelector("#fed");
+  const calendar = document.querySelector("#calendar");
+  const calBody = document.querySelector("#cal-body");
+  const calFrom = document.querySelector("#cal-from");
+  const calTo = document.querySelector("#cal-to");
+  let calendarRows = [];
+  const listen = document.querySelector("#listen");
+  const listenMeta = document.querySelector("#listen-meta");
+  const listenTabs = document.querySelector("#listen-tabs");
+  const listenBody = document.querySelector("#listen-body");
+  const listenDayInput = document.querySelector("#listen-day");
+  const listenPrev = document.querySelector("#listen-prev");
+  const listenNext = document.querySelector("#listen-next");
+  const listenPage = document.querySelector("#listen-page");
+  let listenTimer = 0;
+  let listenHandle = "";
+  let listenDay = "";
+  let listenData = null;
+  const media = document.querySelector("#media");
+  const mediaList = document.querySelector("#media-list");
+  const mediaBody = document.querySelector("#media-body");
+  const mediaTitle = document.querySelector("#media-title");
+  const mediaHint = document.querySelector("#media-hint");
+  const mediaGenerate = document.querySelector("#media-generate");
+  const chinaQuotes = document.querySelector("#china-quotes");
+  const chinaQuotesMeta = document.querySelector("#china-quotes-meta");
+  const chinaQuotesGrid = document.querySelector("#china-quotes-grid");
+  let chinaQuotesTimer = 0;
+  const MEDIA_DESKS = {
+    "us-macro": {
+      title: "美国宏观",
+      generate: false,
+      hint: "获取时报或盘前复盘后会自动生成。",
+      empty: "还没有美国宏观文章。获取简报后会自动生成。"
+    },
+    "us-micro": {
+      title: "美国微观",
+      generate: true,
+      generateLabel: "生成文章",
+      hint: "结合当天 Tree News、Walter Bloomberg、Unusual Whales、ForexLive，并参考当天美国宏观稿。",
+      empty: "还没有美国微观文章。点「生成文章」会结合当天监听消息来写。"
+    },
+    "cn-micro": {
+      title: "中国微观",
+      generate: true,
+      generateLabel: "行情&文章",
+      hint: "上方是腾讯最新价。点「行情&文章」会带上这些行情和当天金十快讯来写。",
+      empty: "还没有中国微观文章。点「行情&文章」会结合腾讯行情和金十快讯来写。"
+    }
+  };
+  const log = document.querySelector("#log");
+  const status = document.querySelector("#status");
+  const fetchButtons = [document.querySelector("#now")];
+  const menuButtons = [...document.querySelectorAll("nav.menu button")];
+  let view = "brief";
+  let current = { brief: brief.textContent, sources: [], failures: [] };
+  let mediaDesk = "us-macro";
+  let mediaName = "";
+  let mediaBusy = false;
+
+  function today() {
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+  }
+
+  function setStatus(text, error) {
+    status.textContent = text || "";
+    status.classList.toggle("error", Boolean(error));
+  }
+
+  async function readJson(response) {
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || "请求失败");
+    return body;
+  }
+
+  function showView(next) {
+    view = next;
+    brief.hidden = next !== "brief";
+    sources.hidden = next !== "sources";
+    fed.hidden = next !== "fed";
+    calendar.hidden = next !== "calendar";
+    listen.hidden = next !== "listen";
+    media.hidden = next !== "media";
+    log.hidden = next !== "log";
+    if (next === "listen") startListen();
+    else stopListen();
+    if (next !== "media" || mediaDesk !== "cn-micro") stopChinaQuotes();
+    for (const button of menuButtons) {
+      const sameView = button.dataset.view === next;
+      const isMediaParent = button.dataset.view === "media" && !button.dataset.desk;
+      const sameDesk = !button.dataset.desk || button.dataset.desk === mediaDesk;
+      button.classList.toggle("active", isMediaParent ? next === "media" : sameView && sameDesk);
+    }
+  }
+
+  function renderSources(items) {
+    sources.replaceChildren();
+    if (!items || items.length === 0) {
+      const empty = document.createElement("li");
+      empty.className = "empty";
+      empty.textContent = "这次还没有拿到新闻链接。";
+      sources.append(empty);
+      return;
+    }
+    items.forEach((item, index) => {
+      const li = document.createElement("li");
+      li.value = index + 1;
+      if (item.url) {
+        const link = document.createElement("a");
+        link.href = item.url;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = item.title || item.url;
+        li.append(link);
+      } else {
+        li.textContent = item.title || "无标题";
+      }
+      sources.append(li);
+    });
+  }
+
+  function renderLog(items) {
+    const body = log.querySelector("tbody");
+    body.replaceChildren();
+    log.querySelectorAll(".empty:not(#log-note)").forEach((node) => node.remove());
+    if (!items || items.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = "还没有失败记录。";
+      log.append(empty);
+      log.querySelector("table").hidden = true;
+      return;
+    }
+    log.querySelector("table").hidden = false;
+    for (const item of items) {
+      const row = document.createElement("tr");
+      for (const [value, className] of [[item.api, ""], [item.at, ""], [item.address, "address"]]) {
+        const cell = document.createElement("td");
+        if (className) cell.className = className;
+        cell.textContent = value || "";
+        row.append(cell);
+      }
+      body.append(row);
+    }
+  }
+
+  let history = {};
+  const chartSections = [
+    { title: "1. 信用与违约压力", charts: [[{ key: "BAMLH0A0HYM2", label: "利差 %" }]] },
+    { title: "2. 债券期限结构", charts: [[{ key: "T10Y2Y", label: "10Y-2Y" }, { key: "T10Y3M", label: "10Y-3M" }]] },
+    { title: "3. 宏观美元水位", charts: [[{ key: "NETLIQ", label: "净流动性（十亿美元）" }]] },
+    { title: "4. 就业市场高频拐点", charts: [[{ key: "ICSA", label: "初请（人）" }], [{ key: "SAHMCURRENT", label: "萨姆规则" }]] },
+    { title: "5. 实体增长实时合成", charts: [[{ key: "GDPNOW", label: "GDPNow %" }]] }
+  ];
+
+  function renderBrief(text) {
+    brief.replaceChildren();
+    const lines = (text || "").split("\n");
+    let bucket = [];
+    let chart = null;
+    function flush() {
+      let i = 0;
+      while (i < bucket.length) {
+        if (bucket[i].trim().startsWith("|")) {
+          const rows = [];
+          while (i < bucket.length && bucket[i].trim().startsWith("|")) {
+            rows.push(bucket[i]);
+            i++;
+          }
+          brief.append(sessionTable(rows));
+          continue;
+        }
+        const line = bucket[i];
+        if (isMoverLine(line)) {
+          brief.append(moverBlock(line));
+        } else if (line.startsWith("数值：")) {
+          const span = document.createElement("span");
+          span.className = "value";
+          span.textContent = line + "\n";
+          brief.append(span);
+        } else {
+          brief.append(document.createTextNode(line + "\n"));
+        }
+        i++;
+      }
+      if (chart) {
+        for (const series of chart.charts) brief.append(lineChart(series));
+      }
+      bucket = [];
+    }
+
+    function sessionTable(rows) {
+      const table = document.createElement("table");
+      table.className = "sessions";
+      const parsed = rows
+        .map((row) => row.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((cell) => cell.trim()))
+        .filter((cells) => cells.length >= 2 && !cells.every((cell) => /^:?-{3,}:?$/.test(cell)));
+      if (parsed.length === 0) {
+        table.append(document.createTextNode(rows.join("\n")));
+        return table;
+      }
+      const head = document.createElement("thead");
+      head.append(tableRow(parsed[0], "th"));
+      table.append(head);
+      const body = document.createElement("tbody");
+      for (const cells of parsed.slice(1)) body.append(tableRow(cells, "td"));
+      table.append(body);
+      return table;
+    }
+
+    function isMoverLine(line) {
+      return /^\[[A-Z0-9.]+\]\s/.test(line);
+    }
+
+    function displayName(symbol) {
+      return ({ USO: "原油 USO", GLD: "黄金 GLD", VIX: "恐慌指数 VIX" })[symbol] || symbol;
+    }
+
+    function signedPct(raw) {
+      const text = (raw || "").trim();
+      if (!text || text === "暂无") return "暂无";
+      if (text.startsWith("+") || text.startsWith("-")) return text.endsWith("%") ? text : text + "%";
+      if (/^\d/.test(text)) return "+" + (text.endsWith("%") ? text : text + "%");
+      return text;
+    }
+
+    function parseLegs(data, session) {
+      const legs = { 盘前: ["暂无", "暂无"], 盘中: ["暂无", "暂无"], 盘后: ["暂无", "暂无"], 夜盘: ["暂无", "暂无"] };
+      const slot = (name) => (Object.prototype.hasOwnProperty.call(legs, name) ? name : "盘中");
+      if (/盘前|盘中|盘后|夜盘/.test(data)) {
+        for (const chunk of data.split("；")) {
+          const piece = chunk.trim().match(/^(盘前|盘中|盘后|夜盘)\s+(.+)$/);
+          if (!piece) continue;
+          const value = piece[2].trim();
+          if (value === "暂无") continue;
+          const priced = value.match(/^(-?\d+(?:\.\d+)?)\s+([+-]?\d+(?:\.\d+)?%)$/);
+          const pctOnly = value.match(/^([+-]?\d+(?:\.\d+)?%)$/);
+          if (priced) legs[piece[1]] = [priced[1], signedPct(priced[2])];
+          else if (pctOnly) legs[piece[1]] = ["—", signedPct(pctOnly[1])];
+        }
+        return legs;
+      }
+      const pct = data.trim().match(/^[+-]?\d+(?:\.\d+)?%$/);
+      if (pct) legs[slot(session)] = ["—", signedPct(pct[0])];
+      return legs;
+    }
+
+    function moverBlock(line) {
+      const match = line.match(/^\[([A-Z0-9.]+)\]\s+(.+)$/);
+      const symbol = match[1];
+      const parts = match[2].split(/\s*\|\s*/);
+      const data = parts[0] || "";
+      const sessionNames = /^(盘前|盘中|盘后|夜盘|收盘|上一交易日收盘|上一时段收盘|最新报价|常规时段)/;
+      let session = "";
+      let index = 1;
+      if (parts[1] && sessionNames.test(parts[1])) {
+        session = parts[1];
+        index = 2;
+      }
+      let sentiment = "";
+      let driver = "";
+      if (parts[index] && parts[index].startsWith("情绪")) {
+        sentiment = parts[index];
+        driver = parts.slice(index + 1).join(" | ");
+      } else {
+        driver = parts.slice(index).join(" | ");
+      }
+      const wrap = document.createElement("div");
+      wrap.className = "mover";
+      const title = document.createElement("div");
+      title.textContent = displayName(symbol) + (session ? " · " + session : "");
+      wrap.append(title);
+      const legs = parseLegs(data, session);
+      wrap.append(sessionTable([
+        "| 时段 | 价格 | 涨跌 |",
+        "| --- | --- | --- |",
+        "| 盘前 | " + legs["盘前"][0] + " | " + legs["盘前"][1] + " |",
+        "| 盘中 | " + legs["盘中"][0] + " | " + legs["盘中"][1] + " |",
+        "| 盘后 | " + legs["盘后"][0] + " | " + legs["盘后"][1] + " |",
+        "| 夜盘 | " + legs["夜盘"][0] + " | " + legs["夜盘"][1] + " |"
+      ]));
+      if (sentiment || driver) {
+        const note = document.createElement("div");
+        note.className = "mover-note";
+        note.textContent = [sentiment, driver].filter(Boolean).join(" | ");
+        wrap.append(note);
+      }
+      return wrap;
+    }
+
+    function tableRow(cells, tag) {
+      const tr = document.createElement("tr");
+      cells.forEach((text, index) => {
+        const cell = document.createElement(tag);
+        cell.textContent = text;
+        if (tag === "td" && index === 2) {
+          if (text.startsWith("+")) cell.className = "up";
+          else if (text.startsWith("-")) cell.className = "down";
+        }
+        tr.append(cell);
+      });
+      return tr;
+    }
+    for (const line of lines) {
+      const next = chartSections.find((item) => line === item.title);
+      if (next) {
+        flush();
+        chart = next;
+      }
+      bucket.push(line);
+    }
+    flush();
+  }
+
+  function lineChart(series) {
+    const wrap = document.createElement("div");
+    wrap.className = "chart-wrap";
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 640 210");
+    svg.setAttribute("class", "chart");
+    svg.setAttribute("role", "img");
+    const tip = document.createElement("div");
+    tip.className = "chart-tip";
+    tip.hidden = true;
+    wrap.append(svg, tip);
+    const prepared = series.map((item) => ({
+      label: item.label,
+      points: (history[item.key] || []).filter((point) => point && point.date && Number.isFinite(point.value))
+    })).filter((item) => item.points.length > 0);
+    if (prepared.length === 0) {
+      const note = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      note.setAttribute("x", "16");
+      note.setAttribute("y", "28");
+      note.setAttribute("fill", "#57534e");
+      note.textContent = "还没有已保存的点";
+      svg.append(note);
+      return wrap;
+    }
+    const ns = "http://www.w3.org/2000/svg";
+    const times = prepared.flatMap((item) => item.points.map((point) => Date.parse(point.date)));
+    const values = prepared.flatMap((item) => item.points.map((point) => point.value));
+    const minT = Math.min(...times);
+    const maxT = Math.max(...times);
+    let minY = Math.min(...values);
+    let maxY = Math.max(...values);
+    if (minY === maxY) {
+      minY -= 1;
+      maxY += 1;
+    }
+    const left = 58;
+    const right = 12;
+    const top = 16;
+    const bottom = 36;
+    const width = 640 - left - right;
+    const height = 210 - top - bottom;
+    const xOf = (time) => left + (maxT === minT ? width / 2 : ((time - minT) / (maxT - minT)) * width);
+    const yOf = (value) => top + ((maxY - value) / (maxY - minY)) * height;
+    const colors = ["#b91c1c", "#9a3412"];
+    const axis = document.createElementNS(ns, "path");
+    axis.setAttribute("d", "M" + left + " " + top + " V" + (top + height) + " H" + (left + width));
+    axis.setAttribute("fill", "none");
+    axis.setAttribute("stroke", "#e7e5e4");
+    svg.append(axis);
+    const hits = [];
+    prepared.forEach((item, index) => {
+      const color = colors[index % colors.length];
+      const ordered = [...item.points].sort((a, b) => a.date.localeCompare(b.date));
+      if (ordered.length > 1) {
+        const line = document.createElementNS(ns, "polyline");
+        line.setAttribute("fill", "none");
+        line.setAttribute("stroke", color);
+        line.setAttribute("stroke-width", "2");
+        line.setAttribute("points", ordered.map((point) => xOf(Date.parse(point.date)) + "," + yOf(point.value)).join(" "));
+        svg.append(line);
+      }
+      for (const point of ordered) {
+        const x = xOf(Date.parse(point.date));
+        const y = yOf(point.value);
+        const dot = document.createElementNS(ns, "circle");
+        dot.setAttribute("cx", x);
+        dot.setAttribute("cy", y);
+        dot.setAttribute("r", "3");
+        dot.setAttribute("fill", color);
+        svg.append(dot);
+        hits.push({ x, y, date: point.date, value: point.value, label: item.label, color, dot });
+      }
+      const label = document.createElementNS(ns, "text");
+      label.setAttribute("x", String(left + index * 150));
+      label.setAttribute("y", "14");
+      label.setAttribute("fill", color);
+      label.setAttribute("font-size", "12");
+      label.textContent = item.label + " · " + ordered.length + " 点";
+      svg.append(label);
+    });
+    const stamps = [...new Set(times)].sort((a, b) => a - b);
+    const ticks = stamps.length <= 4 ? stamps : [stamps[0], stamps[Math.floor(stamps.length / 2)], stamps[stamps.length - 1]];
+    for (const time of ticks) {
+      const label = document.createElementNS(ns, "text");
+      label.setAttribute("x", xOf(time));
+      label.setAttribute("y", String(top + height + 20));
+      label.setAttribute("fill", "#57534e");
+      label.setAttribute("font-size", "11");
+      label.setAttribute("text-anchor", "middle");
+      label.textContent = new Date(time).toISOString().slice(0, 10);
+      svg.append(label);
+    }
+    const vGuide = document.createElementNS(ns, "line");
+    vGuide.setAttribute("stroke", "#1c1917");
+    vGuide.setAttribute("stroke-width", "1");
+    vGuide.setAttribute("stroke-dasharray", "3 3");
+    vGuide.setAttribute("display", "none");
+    svg.append(vGuide);
+    const marks = prepared.map((item, index) => {
+      const mark = document.createElementNS(ns, "circle");
+      mark.setAttribute("r", "5");
+      mark.setAttribute("fill", "none");
+      mark.setAttribute("stroke", colors[index % colors.length]);
+      mark.setAttribute("stroke-width", "1.5");
+      mark.setAttribute("display", "none");
+      svg.append(mark);
+      return mark;
+    });
+    function formatY(value) {
+      if (!Number.isFinite(value)) return "";
+      const abs = Math.abs(value);
+      if (abs >= 1000) return value.toLocaleString("en-US", { maximumFractionDigits: 0 });
+      if (abs >= 10) return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+    }
+    function hideTip() {
+      tip.hidden = true;
+      vGuide.setAttribute("display", "none");
+      for (const mark of marks) mark.setAttribute("display", "none");
+    }
+    function showTip(group) {
+      if (!group.length) {
+        hideTip();
+        return;
+      }
+      const date = String(group[0].date).slice(0, 10);
+      const rows = prepared.map((item) => {
+        const hit = group.find((point) => point.label === item.label);
+        return "<div><span class=\"k\">" + item.label + "</span> " + (hit ? formatY(hit.value) : "暂无") + "</div>";
+      });
+      tip.innerHTML = "<div><span class=\"k\">横坐标</span> " + date + "</div>"
+        + "<div class=\"k\">纵坐标</div>"
+        + rows.join("");
+      tip.hidden = false;
+      const box = svg.getBoundingClientRect();
+      const x = group[0].x;
+      const y = Math.min(...group.map((hit) => hit.y));
+      let leftPx = (x / 640) * box.width;
+      const tipW = tip.offsetWidth || 160;
+      const pad = 8;
+      if (leftPx < tipW / 2 + pad) {
+        tip.style.transform = "translate(0, calc(-100% - 10px))";
+        leftPx = Math.max(pad, leftPx);
+      } else if (leftPx > box.width - tipW / 2 - pad) {
+        tip.style.transform = "translate(-100%, calc(-100% - 10px))";
+        leftPx = Math.min(box.width - pad, leftPx);
+      } else {
+        tip.style.transform = "translate(-50%, calc(-100% - 10px))";
+      }
+      tip.style.left = leftPx + "px";
+      tip.style.top = (y / 210) * box.height + "px";
+      vGuide.setAttribute("x1", x);
+      vGuide.setAttribute("x2", x);
+      vGuide.setAttribute("y1", top);
+      vGuide.setAttribute("y2", top + height);
+      vGuide.setAttribute("display", "");
+      marks.forEach((mark, index) => {
+        const item = prepared[index];
+        const hit = group.find((point) => point.label === item.label);
+        if (!hit) {
+          mark.setAttribute("display", "none");
+          return;
+        }
+        mark.setAttribute("cx", hit.x);
+        mark.setAttribute("cy", hit.y);
+        mark.setAttribute("display", "");
+      });
+    }
+    function svgPoint(event) {
+      const box = svg.getBoundingClientRect();
+      return {
+        x: ((event.clientX - box.left) / box.width) * 640,
+        y: ((event.clientY - box.top) / box.height) * 210
+      };
+    }
+    function groupAt(at) {
+      let nearest = null;
+      let nearestDx = 36;
+      for (const hit of hits) {
+        const dx = Math.abs(hit.x - at.x);
+        if (dx <= nearestDx) {
+          nearestDx = dx;
+          nearest = hit;
+        }
+      }
+      if (!nearest) return [];
+      const date = String(nearest.date).slice(0, 10);
+      return prepared.map((item) => hits.find((hit) => hit.label === item.label && String(hit.date).slice(0, 10) === date)).filter(Boolean);
+    }
+    svg.addEventListener("mousemove", (event) => {
+      const group = groupAt(svgPoint(event));
+      if (!group.length) hideTip();
+      else showTip(group);
+    });
+    svg.addEventListener("mouseleave", hideTip);
+    return wrap;
+  }
+
+  async function paintBrief() {
+    try {
+      history = await readJson(await fetch("/api/macro/history"));
+    } catch (error) {
+      history = {};
+    }
+    renderBrief(current.brief);
+  }
+
+  function apply(body) {
+    current = {
+      brief: body.brief || "",
+      sources: body.sources || [],
+      failures: body.failures || []
+    };
+    brief.textContent = "";
+    renderSources(current.sources);
+    renderLog(current.failures);
+    paintBrief();
+  }
+
+  async function loadList(selectedName) {
+    const date = day.value;
+    const items = await readJson(await fetch("/api/archive?date=" + encodeURIComponent(date)));
+    list.replaceChildren();
+    if (items.length === 0) {
+      const empty = document.createElement("li");
+      empty.textContent = "这一天还没有简报";
+      empty.style.padding = "12px 14px";
+      empty.style.color = "#57534e";
+      list.append(empty);
+      return;
+    }
+    for (const item of items) {
+      const li = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = item.title;
+      button.classList.toggle("active", item.name === selectedName);
+      button.addEventListener("click", () => openBrief(item.name));
+      li.append(button);
+      list.append(li);
+    }
+  }
+
+  async function openBrief(name) {
+    setStatus("正在打开…");
+    const body = await readJson(await fetch("/api/archive/" + encodeURIComponent(name)));
+    apply(body);
+    day.value = body.date;
+    showView("brief");
+    setStatus(body.title + " · " + body.date);
+    await loadList(name);
+  }
+
+  async function fetchNow() {
+    const date = today();
+    day.value = date;
+    fetchButtons.forEach((button) => button.disabled = true);
+    setStatus("正在获取当前时报，大约需要一分钟…");
+    try {
+      const response = await fetch("/api/briefs/now?date=" + encodeURIComponent(date), { method: "POST" });
+      const body = await response.json().catch(() => ({}));
+      apply(body);
+      if (!response.ok) {
+        showView("log");
+        throw new Error(body.error || "请求失败");
+      }
+      day.value = body.date;
+      showView("brief");
+      setStatus("已保存 " + body.title + " · " + body.date);
+      await loadList(body.name);
+    } catch (error) {
+      setStatus(error.message, true);
+    } finally {
+      fetchButtons.forEach((button) => button.disabled = false);
+    }
+  }
+
+  function renderFed(sections) {
+    fed.replaceChildren();
+    if (!sections || sections.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = "这次没有取到官方文章。";
+      fed.append(empty);
+      return;
+    }
+    for (const section of sections) {
+      const heading = document.createElement("h2");
+      heading.textContent = section.name || "官方讯息";
+      fed.append(heading);
+      if (!section.items || section.items.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "empty";
+        empty.textContent = section.error || "这次没有文章。";
+        fed.append(empty);
+        continue;
+      }
+      for (const item of section.items) {
+        const piece = document.createElement("article");
+        piece.className = "piece";
+        const title = document.createElement("h3");
+        title.textContent = item.title || "无标题";
+        const meta = document.createElement("p");
+        meta.className = "meta";
+        meta.textContent = [section.name, item.published].filter(Boolean).join(" · ");
+        const body = document.createElement("p");
+        body.className = "body";
+        body.textContent = item.excerpt || "";
+        const tip = document.createElement("div");
+        tip.className = "tip";
+        const zhHead = document.createElement("h4");
+        zhHead.textContent = "中文对照";
+        const zh = document.createElement("p");
+        zh.className = "note";
+        zh.textContent = item.chinese || "还没有中文译文";
+        const analysisHead = document.createElement("h4");
+        analysisHead.textContent = "专业解读";
+        const analysis = document.createElement("p");
+        analysis.className = "note";
+        analysis.textContent = item.analysis || "还没有专业解读";
+        tip.append(zhHead, zh, analysisHead, analysis);
+        const veil = document.createElement("div");
+        veil.className = "veil";
+        if (item.url) {
+          const link = document.createElement("a");
+          link.href = item.url;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = item.url;
+          veil.append(link);
+        }
+        piece.append(title, meta, body, tip, veil);
+        fed.append(piece);
+      }
+    }
+  }
+
+  async function loadFed() {
+    fed.replaceChildren();
+    const loading = document.createElement("p");
+    loading.className = "empty";
+    loading.textContent = "正在读取官方文章…新文章会翻译并解读，可能要等一会儿。";
+    fed.append(loading);
+    try {
+      renderFed(await readJson(await fetch("/api/fed/notices")));
+    } catch (error) {
+      fed.replaceChildren();
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = error.message;
+      fed.append(empty);
+    }
+  }
+
+  function deskMeta() {
+    return MEDIA_DESKS[mediaDesk] || MEDIA_DESKS["us-macro"];
+  }
+
+  function paintMediaDesk() {
+    const meta = deskMeta();
+    mediaTitle.textContent = meta.title;
+    mediaHint.textContent = meta.hint;
+    mediaGenerate.hidden = !meta.generate;
+    mediaGenerate.disabled = mediaBusy;
+    mediaGenerate.textContent = meta.generateLabel || "生成文章";
+    if (mediaDesk === "cn-micro") startChinaQuotes();
+    else stopChinaQuotes();
+  }
+
+  function renderMediaList(items) {
+    mediaList.replaceChildren();
+    if (!items || items.length === 0) {
+      const empty = document.createElement("li");
+      empty.className = "empty";
+      empty.textContent = deskMeta().empty;
+      mediaList.append(empty);
+      mediaBody.className = "empty";
+      mediaBody.textContent = deskMeta().generate ? "生成后会显示在这里。" : "选一篇媒体文章。";
+      return;
+    }
+    for (const item of items) {
+      const li = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.name = item.name;
+      button.textContent = item.title + " · " + item.date + " " + item.time;
+      button.classList.toggle("active", item.name === mediaName);
+      button.addEventListener("click", () => openMedia(item.name));
+      li.append(button);
+      mediaList.append(li);
+    }
+  }
+
+  function paintMediaArticle(body) {
+    mediaBody.className = "";
+    mediaBody.replaceChildren();
+    const zh = document.createElement("section");
+    zh.className = "lang";
+    const zhTitle = document.createElement("h2");
+    zhTitle.textContent = body.titleZh || body.title || "中文版";
+    const zhCopy = document.createElement("p");
+    zhCopy.className = "copy";
+    zhCopy.textContent = body.bodyZh || "还没有中文正文";
+    zh.append(zhTitle, zhCopy);
+    const divider = document.createElement("hr");
+    divider.className = "divider";
+    const en = document.createElement("section");
+    en.className = "lang";
+    const enTitle = document.createElement("h2");
+    enTitle.textContent = body.titleEn || "English";
+    const enCopy = document.createElement("p");
+    enCopy.className = "copy";
+    enCopy.textContent = body.bodyEn || "No English body yet";
+    en.append(enTitle, enCopy);
+    mediaBody.append(zh, divider, en);
+  }
+
+  async function openMedia(name) {
+    mediaName = name;
+    const body = await readJson(await fetch("/api/media/" + encodeURIComponent(name)));
+    paintMediaArticle(body);
+    [...mediaList.querySelectorAll("button")].forEach((button) => {
+      button.classList.toggle("active", button.dataset.name === name);
+    });
+    setStatus(body.title + " · " + body.date + " " + body.time);
+  }
+
+  async function loadMedia() {
+    paintMediaDesk();
+    setStatus(deskMeta().title);
+    mediaBody.className = "empty";
+    mediaBody.textContent = "正在读取…";
+    mediaList.replaceChildren();
+    const loading = document.createElement("li");
+    loading.className = "empty";
+    loading.textContent = "正在读取媒体文章…";
+    mediaList.append(loading);
+    try {
+      const items = await readJson(await fetch("/api/media?desk=" + encodeURIComponent(mediaDesk)));
+      renderMediaList(items);
+      if (mediaName) {
+        const still = items.some((item) => item.name === mediaName);
+        if (still) await openMedia(mediaName);
+        else mediaName = "";
+      } else if (items.length > 0) {
+        await openMedia(items[0].name);
+      }
+    } catch (error) {
+      renderMediaList([]);
+      mediaBody.className = "empty";
+      mediaBody.textContent = error.message;
+    }
+  }
+
+  async function generateMedia() {
+    if (mediaBusy || !deskMeta().generate) return;
+    mediaBusy = true;
+    mediaGenerate.disabled = true;
+    setStatus("正在" + (deskMeta().generateLabel || "生成文章") + "…可能要一两分钟。");
+    try {
+      const selected = day.value || today();
+      const body = await readJson(await fetch(
+          "/api/media/desks/" + encodeURIComponent(mediaDesk) + "?day=" + encodeURIComponent(selected),
+          { method: "POST" }));
+      mediaName = body.name;
+      await loadMedia();
+      paintMediaArticle(body);
+      setStatus((body.title || deskMeta().title) + " · " + body.date + " " + body.time);
+    } catch (error) {
+      setStatus(error.message, true);
+    } finally {
+      mediaBusy = false;
+      mediaGenerate.disabled = false;
+    }
+  }
+
+  function stopChinaQuotes() {
+    if (chinaQuotesTimer) {
+      clearInterval(chinaQuotesTimer);
+      chinaQuotesTimer = 0;
+    }
+    chinaQuotes.hidden = true;
+  }
+
+  function startChinaQuotes() {
+    chinaQuotes.hidden = false;
+    loadChinaQuotes();
+    if (!chinaQuotesTimer) {
+      chinaQuotesTimer = setInterval(loadChinaQuotes, 15000);
+    }
+  }
+
+  function formatChinaPrice(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "--";
+    return Math.abs(n) >= 100 ? n.toFixed(2) : n.toFixed(3);
+  }
+
+  function paintChinaQuotes(body) {
+    const quotes = body && body.quotes ? body.quotes : [];
+    chinaQuotesGrid.replaceChildren();
+    if (body && body.error) {
+      chinaQuotesMeta.textContent = body.error;
+    } else if (body && body.pulledAt) {
+      chinaQuotesMeta.textContent = "腾讯最新价 · " + body.pulledAt + " 北京时间";
+    } else {
+      chinaQuotesMeta.textContent = "正在拉取腾讯行情…";
+    }
+    if (quotes.length === 0 && !(body && body.error)) {
+      const empty = document.createElement("p");
+      empty.className = "meta";
+      empty.textContent = "还没有行情数字。";
+      chinaQuotesGrid.append(empty);
+      return;
+    }
+    for (const quote of quotes) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      const name = document.createElement("span");
+      name.className = "name";
+      name.textContent = quote.name || quote.code || "";
+      const last = document.createElement("span");
+      last.className = "last";
+      last.textContent = formatChinaPrice(quote.last);
+      const chg = document.createElement("span");
+      const pct = Number(quote.changePercent);
+      chg.className = "chg " + (pct > 0 ? "up" : pct < 0 ? "down" : "flat");
+      const signed = Number.isFinite(pct) ? ((pct > 0 ? "+" : "") + pct.toFixed(2) + "%") : "--";
+      chg.textContent = signed;
+      cell.append(name, last, chg);
+      chinaQuotesGrid.append(cell);
+    }
+  }
+
+  async function loadChinaQuotes() {
+    if (mediaDesk !== "cn-micro") return;
+    try {
+      paintChinaQuotes(await readJson(await fetch("/api/china-quotes")));
+    } catch (error) {
+      paintChinaQuotes({ quotes: [], error: error.message, pulledAt: "" });
+    }
+  }
+
+  function stopListen() {
+    if (listenTimer) {
+      clearInterval(listenTimer);
+      listenTimer = 0;
+    }
+  }
+
+  function startListen() {
+    if (!listenDay) listenDay = today();
+    loadListen();
+    if (!listenTimer) {
+      listenTimer = setInterval(() => {
+        if (listenData && listenData.day && listenData.today && listenData.day !== listenData.today) return;
+        loadListen();
+      }, 2000);
+    }
+  }
+
+  async function loadListen() {
+    try {
+      const query = listenDay ? ("?day=" + encodeURIComponent(listenDay)) : "";
+      listenData = await readJson(await fetch("/api/tree-news" + query));
+      if (listenData && listenData.day) listenDay = listenData.day;
+      renderListen();
+    } catch (error) {
+      listenMeta.textContent = error.message;
+    }
+  }
+
+  function renderListen() {
+    const body = listenData || {};
+    const channels = body.channels || [];
+    if (!listenHandle && channels.length) listenHandle = channels[0].handle;
+    if (listenHandle && !channels.some((channel) => channel.handle === listenHandle)) {
+      listenHandle = channels[0] ? channels[0].handle : "";
+    }
+    const current = channels.find((channel) => channel.handle === listenHandle) || channels[0];
+    const items = current && current.items ? current.items : [];
+    if (!body.enabled) {
+      listenMeta.textContent = "还没有填 TELEGRAM_API_ID / TELEGRAM_API_HASH，监听未启动。";
+    } else if (current && current.error && items.length === 0) {
+      listenMeta.textContent = "@" + current.handle + " · " + current.error;
+    } else if (body.pulledAt) {
+      listenMeta.textContent = (current ? "@" + current.handle + " · " : "") + "上次同步 " + body.pulledAt + " 北京时间";
+    } else {
+      listenMeta.textContent = "正在拉 Telegram 公开频道…";
+    }
+    if (listenDayInput && body.day) listenDayInput.value = body.day;
+    if (listenDayInput && body.today) listenDayInput.max = body.today;
+    if (listenPrev) listenPrev.disabled = !body.prevDay;
+    if (listenNext) listenNext.disabled = !body.nextDay;
+    if (listenPage) {
+      const pages = body.pages || 0;
+      const page = body.page || 0;
+      listenPage.textContent = pages
+          ? (body.day + " · " + items.length + " 条 · 第 " + (page || "-") + " / " + pages + " 天")
+          : ((body.day || "") + " · " + items.length + " 条");
+    }
+    const existingTabs = [...listenTabs.querySelectorAll("button")];
+    const sameTabs = existingTabs.length === channels.length
+        && existingTabs.every((button, i) => button.dataset.handle === channels[i].handle);
+    if (!sameTabs) {
+      listenTabs.replaceChildren();
+      for (const channel of channels) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.handle = channel.handle;
+        const en = document.createElement("span");
+        en.className = "en";
+        en.textContent = channel.title || ("@" + channel.handle);
+        const zh = document.createElement("span");
+        zh.className = "zh";
+        zh.textContent = channel.titleZh || "";
+        button.append(en, zh);
+        button.addEventListener("click", () => {
+          listenHandle = channel.handle;
+          renderListen();
+        });
+        listenTabs.append(button);
+      }
+    }
+    for (const button of listenTabs.querySelectorAll("button")) {
+      button.classList.toggle("active", button.dataset.handle === listenHandle);
+    }
+    listenBody.replaceChildren();
+    if (!body.enabled) {
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = "填好密钥后会自动开始监听。";
+      listenBody.append(empty);
+      return;
+    }
+    if (items.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = current && current.error && body.day === body.today
+          ? current.error
+          : "这一天这个频道还没有消息。";
+      listenBody.append(empty);
+      return;
+    }
+    for (const item of items) {
+      const row = document.createElement("article");
+      row.className = "item";
+      const time = document.createElement("time");
+      time.textContent = item.at || "";
+      const text = document.createElement("p");
+      text.textContent = item.text || "";
+      row.append(time, text);
+      if (item.zh && item.zh !== item.text) {
+        const note = document.createElement("p");
+        note.className = "zh";
+        note.textContent = item.zh;
+        row.append(note);
+      }
+      if (item.url) {
+        const link = document.createElement("a");
+        link.href = item.url;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.textContent = item.url;
+        row.append(link);
+      }
+      listenBody.append(row);
+    }
+  }
+
+  function plusDays(iso, days) {
+    const [year, month, dayOfMonth] = iso.split("-").map(Number);
+    const date = new Date(year, month - 1, dayOfMonth + days);
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return date.getFullYear() + "-" + m + "-" + d;
+  }
+
+  function daySpan(from, to) {
+    if (!from || !to) return 0;
+    const a = new Date(from + "T00:00:00");
+    const b = new Date(to + "T00:00:00");
+    return Math.round((b - a) / 86400000) + 1;
+  }
+
+  function daysInRange(from, to) {
+    const days = [];
+    if (!from || !to || from > to) return days;
+    let cursor = from;
+    while (cursor <= to) {
+      days.push(cursor);
+      cursor = plusDays(cursor, 1);
+    }
+    return days;
+  }
+
+  function clampCalendarRange(changed) {
+    let from = calFrom.value;
+    let to = calTo.value;
+    if (!from && !to) {
+      from = today();
+      to = plusDays(from, 4);
+    } else if (!from) {
+      from = to;
+    } else if (!to) {
+      to = from;
+    }
+    if (from > to) {
+      if (changed === "from") to = from;
+      else from = to;
+    }
+    if (daySpan(from, to) > 5) {
+      if (changed === "to") from = plusDays(to, -4);
+      else to = plusDays(from, 4);
+    }
+    calFrom.value = from;
+    calTo.value = to;
+    calFrom.max = to;
+    calTo.min = from;
+    calTo.max = plusDays(from, 4);
+    calFrom.min = plusDays(to, -4);
+  }
+
+  function renderCalendar() {
+    clampCalendarRange();
+    calBody.replaceChildren();
+    const days = daysInRange(calFrom.value, calTo.value);
+    if (days.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = "请选择不超过 5 天的开始和结束日期。";
+      calBody.append(empty);
+      return;
+    }
+    const byDay = days.map((date) => calendarRows.filter((row) => row.date === date));
+    const tallest = byDay.reduce((max, list) => Math.max(max, list.length), 0);
+    if (tallest === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = "这个范围里没有发布安排。";
+      calBody.append(empty);
+      return;
+    }
+    const table = document.createElement("table");
+    table.className = "grid";
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const date of days) {
+      const th = document.createElement("th");
+      th.textContent = date;
+      headRow.append(th);
+    }
+    head.append(headRow);
+    const body = document.createElement("tbody");
+    for (let index = 0; index < tallest; index++) {
+      const row = document.createElement("tr");
+      for (const list of byDay) {
+        const cell = document.createElement("td");
+        const event = list[index];
+        if (event) {
+          const en = document.createElement("span");
+          en.className = "en";
+          en.textContent = event.name || "未命名发布";
+          const zh = document.createElement("span");
+          zh.className = "zh";
+          zh.textContent = event.chinese && event.chinese !== event.name ? event.chinese : "还没有中文译文";
+          cell.append(en, zh);
+        }
+        row.append(cell);
+      }
+      body.append(row);
+    }
+    table.append(head, body);
+    calBody.append(table);
+  }
+
+  async function loadLogs() {
+    try {
+      const items = await readJson(await fetch("/api/logs"));
+      renderLog(items);
+    } catch (error) {
+      renderLog([]);
+      setStatus(error.message, true);
+    }
+  }
+
+  async function loadCalendar() {
+    clampCalendarRange();
+    calBody.replaceChildren();
+    const loading = document.createElement("p");
+    loading.className = "empty";
+    loading.textContent = "正在读取财经日历…标记未过期读本地库，过期（64 小时）后才重新翻译。";
+    calBody.append(loading);
+    try {
+      calendarRows = await readJson(await fetch("/api/fred/releases"));
+      renderCalendar();
+    } catch (error) {
+      calBody.replaceChildren();
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = error.message;
+      calBody.append(empty);
+    }
+  }
+
+  listenDayInput.addEventListener("change", () => {
+    if (!listenDayInput.value) return;
+    listenDay = listenDayInput.value;
+    loadListen();
+  });
+  listenPrev.addEventListener("click", () => {
+    if (!listenData || !listenData.prevDay) return;
+    listenDay = listenData.prevDay;
+    loadListen();
+  });
+  listenNext.addEventListener("click", () => {
+    if (!listenData || !listenData.nextDay) return;
+    listenDay = listenData.nextDay;
+    loadListen();
+  });
+  mediaGenerate.addEventListener("click", () => generateMedia());
+  for (const button of menuButtons) {
+    button.addEventListener("click", () => {
+      if (button.dataset.view === "media") {
+        const nextDesk = button.dataset.desk || "us-macro";
+        if (nextDesk !== mediaDesk) mediaName = "";
+        mediaDesk = nextDesk;
+        setStatus("");
+      }
+      showView(button.dataset.view);
+      if (button.dataset.view === "fed") loadFed();
+      if (button.dataset.view === "calendar") loadCalendar();
+      if (button.dataset.view === "listen") loadListen();
+      if (button.dataset.view === "media") loadMedia();
+      if (button.dataset.view === "log") loadLogs();
+    });
+  }
+  day.value = today();
+  day.max = today();
+  day.addEventListener("change", () => {
+    current = { brief: "选左边一份简报。", sources: [], failures: [] };
+    apply(current);
+    showView("brief");
+    loadList().catch((error) => setStatus(error.message, true));
+  });
+  calFrom.addEventListener("change", () => {
+    clampCalendarRange("from");
+    renderCalendar();
+  });
+  calTo.addEventListener("change", () => {
+    clampCalendarRange("to");
+    renderCalendar();
+  });
+  document.querySelector("#now").addEventListener("click", () => fetchNow());
+  showView("brief");
+  loadList().catch((error) => setStatus(error.message, true));
+</script>
+</body>
+</html>

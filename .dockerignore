@@ -1,0 +1,10 @@
+target/*
+!target/finance-fresh.jar
+.git/
+.idea/
+data/
+.env
+*.iml
+.DS_Store
+README.md
+src/
