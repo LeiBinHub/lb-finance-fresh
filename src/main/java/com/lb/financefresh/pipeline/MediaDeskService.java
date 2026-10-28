@@ -2,8 +2,7 @@ package com.lb.financefresh.pipeline;
 
 import com.lb.financefresh.config.FreshSettings;
 import com.lb.financefresh.llm.MediaArticleWriter;
-import com.lb.financefresh.market.ChinaQuote;
-import com.lb.financefresh.market.TencentQuotes;
+import com.lb.financefresh.market.ChinaMarket;
 import com.lb.financefresh.market.TreeNews;
 import com.lb.financefresh.model.MediaDesk;
 import org.slf4j.Logger;
@@ -32,7 +31,7 @@ public class MediaDeskService {
     private final TreeNews treeNews;
     private final MediaArchive media;
     private final MediaArticleWriter writer;
-    private final TencentQuotes chinaQuotes;
+    private final ChinaMarket chinaMarket;
 
     MediaDeskService(FreshSettings settings, TreeNews treeNews, MediaArchive media, MediaArticleWriter writer) {
         this(settings, treeNews, media, writer, null);
@@ -40,12 +39,12 @@ public class MediaDeskService {
 
     @Autowired
     public MediaDeskService(FreshSettings settings, TreeNews treeNews, MediaArchive media, MediaArticleWriter writer,
-                            TencentQuotes chinaQuotes) {
+                            ChinaMarket chinaMarket) {
         this.settings = settings;
         this.treeNews = treeNews;
         this.media = media;
         this.writer = writer;
-        this.chinaQuotes = chinaQuotes;
+        this.chinaMarket = chinaMarket;
     }
 
     public MediaArchive.SavedArticle generate(MediaDesk desk, LocalDate day) {
@@ -62,8 +61,10 @@ public class MediaDeskService {
                 throw new IllegalStateException("这一天还没有可写的" + desk.title() + "监听消息");
             }
             MediaArticleWriter.Article source = desk == MediaDesk.US_MICRO ? latestMacro(day) : null;
-            List<ChinaQuote> quotes = desk == MediaDesk.CN_MICRO ? liveChinaQuotes(day, today) : List.of();
-            MediaArticleWriter.Article article = writer.writeDesk(desk, day, source, flashes, quotes);
+            ChinaMarket.Snapshot market = desk == MediaDesk.CN_MICRO
+                    ? liveChinaMarket(day, today)
+                    : ChinaMarket.Snapshot.empty();
+            MediaArticleWriter.Article article = writer.writeDesk(desk, day, source, flashes, market);
             String clock = ZonedDateTime.now(ZoneId.of(settings.zone())).format(DateTimeFormatter.ofPattern("HHmm"));
             return media.saveGenerated(desk, day, clock, article);
         } catch (IllegalStateException | IllegalArgumentException e) {
@@ -87,13 +88,13 @@ public class MediaDeskService {
         return out;
     }
 
-    private List<ChinaQuote> liveChinaQuotes(LocalDate day, LocalDate today) {
-        if (chinaQuotes == null || day == null || !day.equals(today)) return List.of();
+    private ChinaMarket.Snapshot liveChinaMarket(LocalDate day, LocalDate today) {
+        if (chinaMarket == null || day == null || !day.equals(today)) return ChinaMarket.Snapshot.empty();
         try {
-            return chinaQuotes.latest();
+            return chinaMarket.latest();
         } catch (Exception e) {
-            log.warn("Tencent china quotes failed: {}", e.toString());
-            return List.of();
+            log.warn("China market snapshot failed: {}", e.toString());
+            return ChinaMarket.Snapshot.empty();
         }
     }
 

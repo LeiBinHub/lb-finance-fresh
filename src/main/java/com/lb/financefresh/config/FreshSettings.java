@@ -10,8 +10,6 @@ import java.util.List;
 public class FreshSettings {
 
     private String zone = "Asia/Shanghai";
-    private String premarketCron = "0 30 20 * * MON-FRI";
-    private String recapCron = "0 30 6 * * TUE-SAT";
     private int lookbackHours = 24;
     private int clusterTrigger = 5;
     private int clusterKeep = 3;
@@ -30,8 +28,6 @@ public class FreshSettings {
     }
 
     public String zone() { return zone; }
-    public String premarketCron() { return premarketCron; }
-    public String recapCron() { return recapCron; }
     public int lookbackHours() { return lookbackHours; }
     public int clusterTrigger() { return clusterTrigger; }
     public int clusterKeep() { return clusterKeep; }
@@ -104,8 +100,6 @@ public class FreshSettings {
     }
 
     public void setZone(String zone) { this.zone = zone; }
-    public void setPremarketCron(String premarketCron) { this.premarketCron = premarketCron; }
-    public void setRecapCron(String recapCron) { this.recapCron = recapCron; }
     public void setLookbackHours(int lookbackHours) { this.lookbackHours = lookbackHours; }
     public void setClusterTrigger(int clusterTrigger) { this.clusterTrigger = clusterTrigger; }
     public void setClusterKeep(int clusterKeep) { this.clusterKeep = clusterKeep; }

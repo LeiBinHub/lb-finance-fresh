@@ -7,7 +7,7 @@ import com.lb.financefresh.market.ApiFailures;
 import com.lb.financefresh.market.FedNotices;
 import com.lb.financefresh.market.MacroHistory;
 import com.lb.financefresh.market.ReleaseCalendar;
-import com.lb.financefresh.market.TencentQuotes;
+import com.lb.financefresh.market.ChinaMarket;
 import com.lb.financefresh.market.TreeNews;
 import com.lb.financefresh.model.BriefKind;
 import com.lb.financefresh.model.MediaDesk;
@@ -51,13 +51,13 @@ public class BriefController {
     private final ReleaseCalendar calendar;
     private final MediaArchive media;
     private final MediaDeskService mediaDesk;
-    private final TencentQuotes chinaQuotes;
+    private final ChinaMarket chinaMarket;
     private final TreeNews treeNews;
 
     public BriefController(FreshSettings settings, BriefPipeline pipeline, PushFanout fanout, ExactDedup dedup,
                            BriefArchive archive, ApiFailures failures, RunSources sources, MacroHistory history,
                            FedNotices notices, ReleaseCalendar calendar, MediaArchive media, MediaDeskService mediaDesk,
-                           TencentQuotes chinaQuotes, TreeNews treeNews) {
+                           ChinaMarket chinaMarket, TreeNews treeNews) {
         this.settings = settings;
         this.pipeline = pipeline;
         this.fanout = fanout;
@@ -70,7 +70,7 @@ public class BriefController {
         this.calendar = calendar;
         this.media = media;
         this.mediaDesk = mediaDesk;
-        this.chinaQuotes = chinaQuotes;
+        this.chinaMarket = chinaMarket;
         this.treeNews = treeNews;
     }
 
@@ -78,8 +78,6 @@ public class BriefController {
     public Map<String, Object> status() {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("watchlist", settings.watchlist());
-        body.put("premarketCron", settings.premarketCron() + " " + settings.zone());
-        body.put("recapCron", settings.recapCron() + " " + settings.zone());
         body.put("push", fanout.enabled());
         body.put("requiredMissing", settings.requiredMissing());
         body.put("finnhub", settings.finnhubReady());
@@ -153,18 +151,41 @@ public class BriefController {
 
     @GetMapping("/api/china-quotes")
     public Map<String, Object> chinaQuotes() {
+        return chinaMarketBody();
+    }
+
+    @GetMapping("/api/china-market")
+    public Map<String, Object> chinaMarket() {
+        return chinaMarketBody();
+    }
+
+    private Map<String, Object> chinaMarketBody() {
         Map<String, Object> body = new LinkedHashMap<>();
         try {
-            var quotes = chinaQuotes.latest();
-            body.put("quotes", quotes);
-            body.put("error", quotes.isEmpty() ? "腾讯行情还没有返回数字" : "");
+            var snapshot = chinaMarket.latest();
+            putSnapshot(body, snapshot);
+            if (snapshot.quotes().isEmpty() && snapshot.error().isBlank()) {
+                body.put("error", "腾讯行情还没有返回数字");
+            }
         } catch (Exception e) {
-            body.put("quotes", List.of());
-            body.put("error", e.getMessage() == null ? "腾讯行情失败" : e.getMessage());
+            putSnapshot(body, ChinaMarket.Snapshot.empty());
+            body.put("error", e.getMessage() == null ? "中国市场失败" : e.getMessage());
         }
         body.put("pulledAt", ZonedDateTime.now(ZoneId.of(settings.zone()))
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         return body;
+    }
+
+    private static void putSnapshot(Map<String, Object> body, ChinaMarket.Snapshot snapshot) {
+        ChinaMarket.Snapshot board = snapshot == null ? ChinaMarket.Snapshot.empty() : snapshot;
+        body.put("quotes", board.quotes());
+        body.put("indexFlows", board.indexFlows());
+        body.put("industryIn", board.industryIn());
+        body.put("industryOut", board.industryOut());
+        body.put("industriesUp", board.industriesUp());
+        body.put("industriesDown", board.industriesDown());
+        body.put("conceptsUp", board.conceptsUp());
+        body.put("error", board.error());
     }
 
     @GetMapping("/api/media")

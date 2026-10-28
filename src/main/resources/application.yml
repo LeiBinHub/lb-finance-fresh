@@ -12,10 +12,6 @@ spring:
 
 fresh:
   zone: Asia/Shanghai
-  # 北京时间周一到周五 20:30，对应美东盘前
-  premarket-cron: "0 30 20 * * MON-FRI"
-  # 北京时间周二到周六 06:30，对应美东前一交易日收盘之后
-  recap-cron: "0 30 6 * * TUE-SAT"
   lookback-hours: 24
   cluster-trigger: 5
   cluster-keep: 3

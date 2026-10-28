@@ -276,17 +276,28 @@
     #media .head { margin: 0 0 12px; }
     #media .head h2 { margin: 0 0 4px; font-size: 16px; }
     #media .head .meta { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+    #china-market {
+      margin: 0;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      min-height: 280px;
+      padding: 12px 16px 18px;
+    }
+    #china-market h2 { margin: 0 0 4px; font-size: 16px; }
+    #china-market h3 { margin: 16px 0 8px; font-size: 15px; }
+    #china-market h4 { margin: 10px 0 6px; font-size: 13px; color: var(--muted); font-weight: 650; }
+    #china-market .meta { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
     #china-quotes {
-      margin: 0 0 12px;
+      margin: 0 0 4px;
       padding: 10px 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fffefb;
     }
-    #china-quotes .meta { margin: 0 0 8px; }
     #china-quotes .quote-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
       gap: 8px;
     }
     #china-quotes .cell {
@@ -298,9 +309,20 @@
     #china-quotes .cell .name { display: block; color: var(--muted); font-size: 12px; }
     #china-quotes .cell .last { display: block; font-size: 18px; font-weight: 650; margin: 2px 0; }
     #china-quotes .cell .chg { font-size: 13px; font-weight: 650; }
-    #china-quotes .cell .chg.up { color: #b91c1c; }
-    #china-quotes .cell .chg.down { color: #047857; }
-    #china-quotes .cell .chg.flat { color: var(--muted); }
+    #china-quotes .cell .chg.up, #china-market .up { color: #b91c1c; }
+    #china-quotes .cell .chg.down, #china-market .down { color: #047857; }
+    #china-quotes .cell .chg.flat, #china-market .flat { color: var(--muted); }
+    #china-quotes .cell .extra { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
+    #china-market .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    #china-market table { font-size: 13px; }
+    #china-market td.num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    @media (max-width: 720px) {
+      #china-market .split { grid-template-columns: 1fr; }
+    }
     #media-list {
       list-style: none;
       margin: 0 0 14px;
@@ -386,7 +408,7 @@
 <body>
 <header>
   <h1>美股简报</h1>
-      <p class="note">日期用来打开已保存的简报。点「获取当前时报」会拉取此刻最新数据，并生成一篇美国宏观媒体文章。盘前和复盘仍按原来的定时任务自动跑。左侧媒体文章下有美国宏观、美国微观和中国微观。</p>
+      <p class="note">日期用来打开已保存的简报。点「获取当前时报」会拉取此刻最新数据，并生成一篇美国宏观媒体文章。中国市场是腾讯行情、主力资金和板块榜；中国微观只用这些数据和金十来写文章。</p>
 </header>
 <main>
   <div class="bar">
@@ -407,6 +429,7 @@
         <button type="button" data-view="media">媒体文章</button>
         <button type="button" data-view="media" data-desk="us-macro" class="sub">美国宏观</button>
         <button type="button" data-view="media" data-desk="us-micro" class="sub">美国微观</button>
+        <button type="button" data-view="china-market" class="sub">中国市场</button>
         <button type="button" data-view="media" data-desk="cn-micro" class="sub">中国微观</button>
         <button type="button" data-view="log">请求日志</button>
       </nav>
@@ -441,14 +464,42 @@
         <nav class="listen-tabs" id="listen-tabs"></nav>
         <div id="listen-body"></div>
       </section>
+      <section id="china-market" hidden>
+        <h2>中国市场</h2>
+        <p class="meta" id="china-market-meta">正在拉取腾讯行情…</p>
+        <div id="china-quotes">
+          <div class="quote-grid" id="china-quotes-grid"></div>
+        </div>
+        <h3>主力资金</h3>
+        <div id="china-index-flows"></div>
+        <div class="split">
+          <div>
+            <h4>行业流入</h4>
+            <div id="china-industry-in"></div>
+          </div>
+          <div>
+            <h4>行业流出</h4>
+            <div id="china-industry-out"></div>
+          </div>
+        </div>
+        <h3>板块榜</h3>
+        <div class="split">
+          <div>
+            <h4>行业涨幅</h4>
+            <div id="china-industries-up"></div>
+          </div>
+          <div>
+            <h4>行业跌幅</h4>
+            <div id="china-industries-down"></div>
+          </div>
+        </div>
+        <h4>概念涨幅</h4>
+        <div id="china-concepts-up"></div>
+      </section>
       <section id="media" hidden>
         <div class="head">
           <h2 id="media-title">美国宏观</h2>
-          <p class="meta" id="media-hint">获取时报或盘前复盘后会自动生成。</p>
-          <div id="china-quotes" hidden>
-            <p class="meta" id="china-quotes-meta">正在拉取腾讯行情…</p>
-            <div class="quote-grid" id="china-quotes-grid"></div>
-          </div>
+          <p class="meta" id="media-hint">获取时报后会自动生成。</p>
           <button id="media-generate" class="action" type="button" hidden>生成文章</button>
         </div>
         <ul id="media-list"></ul>
@@ -496,16 +547,22 @@
   const mediaTitle = document.querySelector("#media-title");
   const mediaHint = document.querySelector("#media-hint");
   const mediaGenerate = document.querySelector("#media-generate");
-  const chinaQuotes = document.querySelector("#china-quotes");
-  const chinaQuotesMeta = document.querySelector("#china-quotes-meta");
+  const chinaMarket = document.querySelector("#china-market");
+  const chinaMarketMeta = document.querySelector("#china-market-meta");
   const chinaQuotesGrid = document.querySelector("#china-quotes-grid");
-  let chinaQuotesTimer = 0;
+  const chinaIndexFlows = document.querySelector("#china-index-flows");
+  const chinaIndustryIn = document.querySelector("#china-industry-in");
+  const chinaIndustryOut = document.querySelector("#china-industry-out");
+  const chinaIndustriesUp = document.querySelector("#china-industries-up");
+  const chinaIndustriesDown = document.querySelector("#china-industries-down");
+  const chinaConceptsUp = document.querySelector("#china-concepts-up");
+  let chinaMarketTimer = 0;
   const MEDIA_DESKS = {
     "us-macro": {
       title: "美国宏观",
       generate: false,
-      hint: "获取时报或盘前复盘后会自动生成。",
-      empty: "还没有美国宏观文章。获取简报后会自动生成。"
+      hint: "获取时报后会自动生成。",
+      empty: "还没有美国宏观文章。获取时报后会自动生成。"
     },
     "us-micro": {
       title: "美国微观",
@@ -517,9 +574,9 @@
     "cn-micro": {
       title: "中国微观",
       generate: true,
-      generateLabel: "行情&文章",
-      hint: "上方是腾讯最新价。点「行情&文章」会带上这些行情和当天金十快讯来写。",
-      empty: "还没有中国微观文章。点「行情&文章」会结合腾讯行情和金十快讯来写。"
+      generateLabel: "生成文章",
+      hint: "用中国市场的腾讯行情、主力资金、板块榜，再加上当天金十快讯写行情文章。",
+      empty: "还没有中国微观文章。点「生成文章」会结合中国市场数据和金十快讯来写。"
     }
   };
   const log = document.querySelector("#log");
@@ -556,16 +613,19 @@
     fed.hidden = next !== "fed";
     calendar.hidden = next !== "calendar";
     listen.hidden = next !== "listen";
+    chinaMarket.hidden = next !== "china-market";
     media.hidden = next !== "media";
     log.hidden = next !== "log";
     if (next === "listen") startListen();
     else stopListen();
-    if (next !== "media" || mediaDesk !== "cn-micro") stopChinaQuotes();
+    if (next === "china-market") startChinaMarket();
+    else stopChinaMarket();
     for (const button of menuButtons) {
       const sameView = button.dataset.view === next;
       const isMediaParent = button.dataset.view === "media" && !button.dataset.desk;
       const sameDesk = !button.dataset.desk || button.dataset.desk === mediaDesk;
-      button.classList.toggle("active", isMediaParent ? next === "media" : sameView && sameDesk);
+      const mediaOpen = next === "media" || next === "china-market";
+      button.classList.toggle("active", isMediaParent ? mediaOpen : sameView && sameDesk);
     }
   }
 
@@ -1153,8 +1213,6 @@
     mediaGenerate.hidden = !meta.generate;
     mediaGenerate.disabled = mediaBusy;
     mediaGenerate.textContent = meta.generateLabel || "生成文章";
-    if (mediaDesk === "cn-micro") startChinaQuotes();
-    else stopChinaQuotes();
   }
 
   function renderMediaList(items) {
@@ -1264,19 +1322,17 @@
     }
   }
 
-  function stopChinaQuotes() {
-    if (chinaQuotesTimer) {
-      clearInterval(chinaQuotesTimer);
-      chinaQuotesTimer = 0;
+  function stopChinaMarket() {
+    if (chinaMarketTimer) {
+      clearInterval(chinaMarketTimer);
+      chinaMarketTimer = 0;
     }
-    chinaQuotes.hidden = true;
   }
 
-  function startChinaQuotes() {
-    chinaQuotes.hidden = false;
-    loadChinaQuotes();
-    if (!chinaQuotesTimer) {
-      chinaQuotesTimer = setInterval(loadChinaQuotes, 15000);
+  function startChinaMarket() {
+    loadChinaMarket();
+    if (!chinaMarketTimer) {
+      chinaMarketTimer = setInterval(loadChinaMarket, 15000);
     }
   }
 
@@ -1286,17 +1342,37 @@
     return Math.abs(n) >= 100 ? n.toFixed(2) : n.toFixed(3);
   }
 
-  function paintChinaQuotes(body) {
-    const quotes = body && body.quotes ? body.quotes : [];
+  function formatSignedPct(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "--";
+    return (n > 0 ? "+" : "") + n.toFixed(2) + "%";
+  }
+
+  function chgClass(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === 0) return "flat";
+    return n > 0 ? "up" : "down";
+  }
+
+  function formatYiFromWan(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === 0) return "--";
+    const yi = n / 10000;
+    if (Math.abs(yi) >= 100) return yi.toFixed(0) + "亿";
+    return yi.toFixed(2) + "亿";
+  }
+
+  function formatYiFromYuan(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === 0) return "--";
+    const yi = n / 1e8;
+    const signed = (yi > 0 ? "+" : "") + (Math.abs(yi) >= 100 ? yi.toFixed(0) : yi.toFixed(2)) + "亿";
+    return signed;
+  }
+
+  function paintChinaQuotes(quotes) {
     chinaQuotesGrid.replaceChildren();
-    if (body && body.error) {
-      chinaQuotesMeta.textContent = body.error;
-    } else if (body && body.pulledAt) {
-      chinaQuotesMeta.textContent = "腾讯最新价 · " + body.pulledAt + " 北京时间";
-    } else {
-      chinaQuotesMeta.textContent = "正在拉取腾讯行情…";
-    }
-    if (quotes.length === 0 && !(body && body.error)) {
+    if (!quotes || quotes.length === 0) {
       const empty = document.createElement("p");
       empty.className = "meta";
       empty.textContent = "还没有行情数字。";
@@ -1313,21 +1389,122 @@
       last.className = "last";
       last.textContent = formatChinaPrice(quote.last);
       const chg = document.createElement("span");
-      const pct = Number(quote.changePercent);
-      chg.className = "chg " + (pct > 0 ? "up" : pct < 0 ? "down" : "flat");
-      const signed = Number.isFinite(pct) ? ((pct > 0 ? "+" : "") + pct.toFixed(2) + "%") : "--";
-      chg.textContent = signed;
+      chg.className = "chg " + chgClass(quote.changePercent);
+      chg.textContent = formatSignedPct(quote.changePercent);
+      const extra = document.createElement("span");
+      extra.className = "extra";
+      const bits = [];
+      if (Number(quote.amount)) bits.push("额 " + formatYiFromWan(quote.amount));
+      if (Number(quote.turnover)) bits.push("换 " + Number(quote.turnover).toFixed(2) + "%");
+      if (Number(quote.amplitude)) bits.push("幅 " + Number(quote.amplitude).toFixed(2) + "%");
+      extra.textContent = bits.join(" · ") || "";
       cell.append(name, last, chg);
+      if (extra.textContent) cell.append(extra);
       chinaQuotesGrid.append(cell);
     }
   }
 
-  async function loadChinaQuotes() {
-    if (mediaDesk !== "cn-micro") return;
+  function paintFlowTable(target, rows, emptyText) {
+    target.replaceChildren();
+    if (!rows || rows.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "meta";
+      empty.textContent = emptyText;
+      target.append(empty);
+      return;
+    }
+    const table = document.createElement("table");
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const label of ["名称", "涨跌", "主力净流入"]) {
+      const th = document.createElement("th");
+      th.textContent = label;
+      headRow.append(th);
+    }
+    head.append(headRow);
+    const body = document.createElement("tbody");
+    for (const row of rows) {
+      const tr = document.createElement("tr");
+      const name = document.createElement("td");
+      name.textContent = row.name || row.code || "";
+      const pct = document.createElement("td");
+      pct.className = "num " + chgClass(row.changePercent);
+      pct.textContent = formatSignedPct(row.changePercent);
+      const net = document.createElement("td");
+      net.className = "num " + chgClass(row.mainNet);
+      net.textContent = formatYiFromYuan(row.mainNet);
+      tr.append(name, pct, net);
+      body.append(tr);
+    }
+    table.append(head, body);
+    target.append(table);
+  }
+
+  function paintSectorTable(target, rows, emptyText) {
+    target.replaceChildren();
+    if (!rows || rows.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "meta";
+      empty.textContent = emptyText;
+      target.append(empty);
+      return;
+    }
+    const table = document.createElement("table");
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const label of ["板块", "涨跌", "领涨"]) {
+      const th = document.createElement("th");
+      th.textContent = label;
+      headRow.append(th);
+    }
+    head.append(headRow);
+    const body = document.createElement("tbody");
+    for (const row of rows) {
+      const tr = document.createElement("tr");
+      const name = document.createElement("td");
+      name.textContent = row.name || "";
+      const pct = document.createElement("td");
+      pct.className = "num " + chgClass(row.changePercent);
+      pct.textContent = formatSignedPct(row.changePercent);
+      const leader = document.createElement("td");
+      const leadPct = Number(row.leaderPercent);
+      leader.textContent = (row.leader || "--") + (Number.isFinite(leadPct) && row.leader
+          ? " " + formatSignedPct(leadPct) : "");
+      leader.className = chgClass(row.leaderPercent);
+      tr.append(name, pct, leader);
+      body.append(tr);
+    }
+    table.append(head, body);
+    target.append(table);
+  }
+
+  function paintChinaMarket(body) {
+    const hasQuotes = body && body.quotes && body.quotes.length > 0;
+    if (hasQuotes && body.pulledAt) {
+      chinaMarketMeta.textContent = "腾讯行情 · " + body.pulledAt + " 北京时间"
+          + ((body.indexFlows && body.indexFlows.length) ? " · 东财资金" : " · 主力资金暂未返回");
+    } else if (body && body.error) {
+      chinaMarketMeta.textContent = body.error + (body.pulledAt ? " · " + body.pulledAt + " 北京时间" : "");
+    } else if (body && body.pulledAt) {
+      chinaMarketMeta.textContent = "腾讯行情 · 东财资金 · " + body.pulledAt + " 北京时间";
+    } else {
+      chinaMarketMeta.textContent = "正在拉取腾讯行情…";
+    }
+    paintChinaQuotes(body && body.quotes ? body.quotes : []);
+    paintFlowTable(chinaIndexFlows, body && body.indexFlows, "还没有指数主力资金。");
+    paintFlowTable(chinaIndustryIn, body && body.industryIn, "还没有行业流入。");
+    paintFlowTable(chinaIndustryOut, body && body.industryOut, "还没有行业流出。");
+    paintSectorTable(chinaIndustriesUp, body && body.industriesUp, "还没有行业涨幅榜。");
+    paintSectorTable(chinaIndustriesDown, body && body.industriesDown, "还没有行业跌幅榜。");
+    paintSectorTable(chinaConceptsUp, body && body.conceptsUp, "还没有概念涨幅榜。");
+  }
+
+  async function loadChinaMarket() {
+    if (view !== "china-market") return;
     try {
-      paintChinaQuotes(await readJson(await fetch("/api/china-quotes")));
+      paintChinaMarket(await readJson(await fetch("/api/china-market")));
     } catch (error) {
-      paintChinaQuotes({ quotes: [], error: error.message, pulledAt: "" });
+      paintChinaMarket({ quotes: [], error: error.message, pulledAt: "" });
     }
   }
 
@@ -1621,6 +1798,7 @@
       if (button.dataset.view === "fed") loadFed();
       if (button.dataset.view === "calendar") loadCalendar();
       if (button.dataset.view === "listen") loadListen();
+      if (button.dataset.view === "china-market") loadChinaMarket();
       if (button.dataset.view === "media") loadMedia();
       if (button.dataset.view === "log") loadLogs();
     });

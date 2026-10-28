@@ -1,9 +1,13 @@
 package com.lb.financefresh.llm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lb.financefresh.config.FreshSettings;
+import com.lb.financefresh.market.ChinaFundFlow;
+import com.lb.financefresh.market.ChinaMarket;
 import com.lb.financefresh.market.ChinaQuote;
+import com.lb.financefresh.market.ChinaSector;
 import com.lb.financefresh.market.ExternalHttp;
 import com.lb.financefresh.market.TreeNews;
 import com.lb.financefresh.model.BriefKind;
@@ -72,11 +76,16 @@ public class MediaArticleWriter {
 
     public Article writeDesk(MediaDesk desk, LocalDate day, Article macroArticle, List<TreeNews.Item> treeNews)
             throws Exception {
-        return writeDesk(desk, day, macroArticle, treeNews, List.of());
+        return writeDesk(desk, day, macroArticle, treeNews, ChinaMarket.Snapshot.empty());
     }
 
     public Article writeDesk(MediaDesk desk, LocalDate day, Article macroArticle, List<TreeNews.Item> treeNews,
                              List<ChinaQuote> quotes) throws Exception {
+        return writeDesk(desk, day, macroArticle, treeNews, ChinaMarket.Snapshot.ofQuotes(quotes));
+    }
+
+    public Article writeDesk(MediaDesk desk, LocalDate day, Article macroArticle, List<TreeNews.Item> treeNews,
+                             ChinaMarket.Snapshot market) throws Exception {
         if (desk == null || desk == MediaDesk.US_MACRO) {
             throw new IllegalArgumentException("美国宏观由获取时报自动生成");
         }
@@ -91,7 +100,7 @@ public class MediaArticleWriter {
         var messages = payload.putArray("messages");
         messages.addObject().put("role", "system").put("content", systemPrompt(desk));
         messages.addObject().put("role", "user").put("content",
-                userPromptDesk(desk, day, macroArticle, treeNews, quotes));
+                userPromptDesk(desk, day, macroArticle, treeNews, market));
         String body = http.postJson(
                 URI.create(settings.deepseekUrl()),
                 json.writeValueAsString(payload),
@@ -183,11 +192,13 @@ public class MediaArticleWriter {
         }
         if (desk == MediaDesk.CN_MICRO) {
             return """
-                    你盯A股和港股，中英文都能写。这是中国微观稿：用腾讯财经最新价看盘，再用当天金十（jin10light）快讯解读政策、数据、商品与股市。
+                    你盯A股和港股，中英文都能写。这是中国微观稿：根据中国市场看板（腾讯行情、东财主力资金、腾讯板块榜）和当天金十（jin10light）快讯写可直接发出去的行情文章。
                     只根据用户给的材料写，不编造，不把美股频道快讯写进来。没给的日期不要编。
-                    quotes 来自腾讯财经最新价（last、prevClose、change、changePercent）。上证、深成、创业板、沪深300、恒指和港股必须用这些数字，不要用金十里可能过时的开盘价覆盖最新价。没有 quotes 就只根据金十写，不要编指数。
+                    quotes 来自腾讯财经最新价：last、prevClose、change、changePercent、high、low、amount（成交额，单位万）、turnover、pe、amplitude。上证、深成、创业板、沪深300、恒指和港股必须用这些数字，不要用金十里可能过时的开盘价覆盖最新价。
+                    indexFlows / industryIn / industryOut 是东财主力净流入（mainNet 单位元，mainPct 是占比）。industriesUp / industriesDown / conceptsUp 是腾讯行业和概念涨跌榜。资金和板块必须用这些数字，不要另编板块涨跌或主力流向。
+                    没有 quotes 就只根据金十写，不要编指数。没有资金或板块就不要硬写主力流入流出。
                     A股没有美股盘前盘后夜盘，写成开盘、午盘、收盘或最新价即可。
-                    treeNews 只包含 day 这一天（北京时间）金十消息。每条有原文 text 和中文注释 zh。能对上行情的要写进判断；对不上的不要硬凑。数组为空就当当天没有监听消息。
+                    treeNews 只包含 day 这一天（北京时间）金十消息。每条有原文 text 和中文注释 zh。能对上行情、资金、板块的要写进判断；对不上的不要硬凑。数组为空就当当天没有监听消息。
                     """;
         }
         return """
@@ -253,11 +264,17 @@ public class MediaArticleWriter {
 
     String userPromptDesk(MediaDesk desk, LocalDate day, Article macroArticle, List<TreeNews.Item> treeNews)
             throws Exception {
-        return userPromptDesk(desk, day, macroArticle, treeNews, List.of());
+        return userPromptDesk(desk, day, macroArticle, treeNews, ChinaMarket.Snapshot.empty());
     }
 
     String userPromptDesk(MediaDesk desk, LocalDate day, Article macroArticle, List<TreeNews.Item> treeNews,
                           List<ChinaQuote> quotes) throws Exception {
+        return userPromptDesk(desk, day, macroArticle, treeNews, ChinaMarket.Snapshot.ofQuotes(quotes));
+    }
+
+    String userPromptDesk(MediaDesk desk, LocalDate day, Article macroArticle, List<TreeNews.Item> treeNews,
+                          ChinaMarket.Snapshot market) throws Exception {
+        ChinaMarket.Snapshot board = market == null ? ChinaMarket.Snapshot.empty() : market;
         ObjectNode root = json.createObjectNode();
         root.put("day", day.toString());
         root.put("desk", desk.id());
@@ -269,21 +286,59 @@ public class MediaArticleWriter {
             macro.put("bodyEn", macroArticle.bodyEn() == null ? "" : macroArticle.bodyEn());
         }
         var quoteRows = root.putArray("quotes");
-        if (quotes != null) {
-            for (ChinaQuote quote : quotes) {
-                if (quote == null) continue;
-                ObjectNode row = quoteRows.addObject();
-                row.put("code", quote.code() == null ? "" : quote.code());
-                row.put("name", quote.name() == null ? "" : quote.name());
-                row.put("last", quote.last());
-                row.put("prevClose", quote.prevClose());
-                row.put("change", quote.change());
-                row.put("changePercent", quote.changePercent());
-                row.put("at", quote.at() == null ? "" : quote.at());
-            }
+        for (ChinaQuote quote : board.quotes()) {
+            if (quote == null) continue;
+            ObjectNode row = quoteRows.addObject();
+            row.put("code", quote.code() == null ? "" : quote.code());
+            row.put("name", quote.name() == null ? "" : quote.name());
+            row.put("last", quote.last());
+            row.put("prevClose", quote.prevClose());
+            row.put("change", quote.change());
+            row.put("changePercent", quote.changePercent());
+            row.put("at", quote.at() == null ? "" : quote.at());
+            row.put("high", quote.high());
+            row.put("low", quote.low());
+            row.put("volume", quote.volume());
+            row.put("amount", quote.amount());
+            row.put("turnover", quote.turnover());
+            row.put("pe", quote.pe());
+            row.put("amplitude", quote.amplitude());
         }
+        putFlows(root.putArray("indexFlows"), board.indexFlows());
+        putFlows(root.putArray("industryIn"), board.industryIn());
+        putFlows(root.putArray("industryOut"), board.industryOut());
+        putSectors(root.putArray("industriesUp"), board.industriesUp());
+        putSectors(root.putArray("industriesDown"), board.industriesDown());
+        putSectors(root.putArray("conceptsUp"), board.conceptsUp());
         putFlashes(root, treeNews);
         return json.writeValueAsString(root);
+    }
+
+    private static void putFlows(ArrayNode rows, List<ChinaFundFlow> flows) {
+        if (flows == null) return;
+        for (ChinaFundFlow flow : flows) {
+            if (flow == null) continue;
+            ObjectNode row = rows.addObject();
+            row.put("code", flow.code() == null ? "" : flow.code());
+            row.put("name", flow.name() == null ? "" : flow.name());
+            row.put("changePercent", flow.changePercent());
+            row.put("mainNet", flow.mainNet());
+            row.put("mainPct", flow.mainPct());
+        }
+    }
+
+    private static void putSectors(ArrayNode rows, List<ChinaSector> sectors) {
+        if (sectors == null) return;
+        for (ChinaSector sector : sectors) {
+            if (sector == null) continue;
+            ObjectNode row = rows.addObject();
+            row.put("kind", sector.kind() == null ? "" : sector.kind());
+            row.put("name", sector.name() == null ? "" : sector.name());
+            row.put("last", sector.last());
+            row.put("changePercent", sector.changePercent());
+            row.put("leader", sector.leader() == null ? "" : sector.leader());
+            row.put("leaderPercent", sector.leaderPercent());
+        }
     }
 
     private void putFlashes(ObjectNode root, List<TreeNews.Item> treeNews) {

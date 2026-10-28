@@ -32,5 +32,9 @@ class ApiFailuresTest {
     @Test
     void tencentHostIsLabeled行情() {
         assertEquals("腾讯行情", ApiFailures.apiName(java.net.URI.create("https://qt.gtimg.cn/q=sh000001")));
+        assertEquals("腾讯板块", ApiFailures.apiName(java.net.URI.create(
+                "https://ifzq.gtimg.cn/appstock/app/mktHs/rank?t=01/averatio")));
+        assertEquals("东方财富资金", ApiFailures.apiName(java.net.URI.create(
+                "https://push2.eastmoney.com/api/qt/ulist.np/get")));
     }
 }

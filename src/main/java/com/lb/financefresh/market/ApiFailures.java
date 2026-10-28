@@ -129,6 +129,8 @@ public class ApiFailures {
         if (host.contains("stlouisfed")) return "FRED " + query(uri, "series_id");
         if (host.contains("alpaca") && path.contains("/news")) return "Alpaca /v1beta1/news";
         if (host.contains("alpaca")) return "Alpaca " + path;
+        if (host.contains("eastmoney")) return "东方财富资金";
+        if ((host.contains("gtimg") || host.contains("finance.qq")) && path.contains("mktHs")) return "腾讯板块";
         if (host.contains("gtimg") || host.contains("finance.qq")) return "腾讯行情";
         if (host.contains("deepseek")) return "DeepSeek /chat/completions";
         if (host.contains("dingtalk")) return "钉钉机器人";

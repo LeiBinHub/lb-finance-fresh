@@ -3,6 +3,7 @@ package com.lb.financefresh.llm;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lb.financefresh.config.FreshSettings;
+import com.lb.financefresh.market.ChinaMarket;
 import com.lb.financefresh.market.TreeNews;
 import com.lb.financefresh.model.BriefKind;
 import com.lb.financefresh.model.MediaDesk;
@@ -163,6 +164,36 @@ class MediaArticleWriterTest {
         assertEquals("上证指数", root.path("quotes").get(0).path("name").asText());
         assertEquals(3685.65, root.path("quotes").get(0).path("last").asDouble(), 0.001);
         assertEquals(-0.13, root.path("quotes").get(0).path("changePercent").asDouble(), 0.001);
+        assertEquals(0, root.path("indexFlows").size());
+        assertEquals(0, root.path("industriesUp").size());
+    }
+
+    @Test
+    void userPromptDeskPutsChinaMarketFlowsAndSectors() throws Exception {
+        MediaArticleWriter writer = new MediaArticleWriter(new FreshSettings(), null, new ObjectMapper());
+        ChinaMarket.Snapshot market = new ChinaMarket.Snapshot(
+                List.of(new com.lb.financefresh.market.ChinaQuote(
+                        "sh000001", "上证指数", 3674.44, 3648.15, 26.29, 0.72, "2026-10-28 11:46:00",
+                        3680.11, 3640.02, 0, 46311053, 0, 0, 1.10, 0, 0)),
+                List.of(new com.lb.financefresh.market.ChinaFundFlow("000001", "上证指数", 0.72, 4840000000d, 12.3)),
+                List.of(new com.lb.financefresh.market.ChinaFundFlow("BK0448", "电子", 3.1, 2100000000d, 8.8)),
+                List.of(),
+                List.of(new com.lb.financefresh.market.ChinaSector("industry", "自动化设备", 0, 5.86, "某股", 10.02)),
+                List.of(new com.lb.financefresh.market.ChinaSector("industry", "白酒", 0, -2.35, "茅台", -1.2)),
+                List.of(),
+                "");
+        String payload = writer.userPromptDesk(
+                com.lb.financefresh.model.MediaDesk.CN_MICRO,
+                LocalDate.of(2026, 10, 28),
+                null,
+                List.of(),
+                market);
+        JsonNode root = new ObjectMapper().readTree(payload);
+        assertEquals(46311053, root.path("quotes").get(0).path("amount").asDouble(), 1);
+        assertEquals(4840000000d, root.path("indexFlows").get(0).path("mainNet").asDouble(), 1);
+        assertEquals("电子", root.path("industryIn").get(0).path("name").asText());
+        assertEquals("自动化设备", root.path("industriesUp").get(0).path("name").asText());
+        assertEquals(-2.35, root.path("industriesDown").get(0).path("changePercent").asDouble(), 0.001);
     }
 
     @Test
@@ -180,6 +211,8 @@ class MediaArticleWriterTest {
         }
         assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.US_MICRO).contains("Unusual Whales"));
         assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.CN_MICRO).contains("腾讯财经最新价"));
+        assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.CN_MICRO).contains("主力净流入"));
+        assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.CN_MICRO).contains("jin10light"));
         assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.US_MACRO).contains("premarket"));
         assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.US_MACRO).contains("不要开篇把指数和个股报价念一遍"));
     }
