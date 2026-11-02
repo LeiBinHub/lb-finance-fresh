@@ -6,5 +6,5 @@ WORKDIR /app
 ENV TZ=Asia/Shanghai PYTHONUNBUFFERED=1
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY listen.py .
+COPY listen.py backfill.py .
 CMD ["python", "listen.py"]

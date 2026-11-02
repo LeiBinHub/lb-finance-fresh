@@ -80,6 +80,40 @@ public class MediaArchive {
         }
     }
 
+    public List<SavedArticle> list(MediaDesk desk, LocalDate day) throws IOException {
+        if (day == null) return list(desk);
+        String key = day.toString();
+        return list(desk).stream().filter(item -> key.equals(item.date())).toList();
+    }
+
+    public List<String> days(MediaDesk desk) throws IOException {
+        return list(desk).stream().map(SavedArticle::date).distinct().toList();
+    }
+
+    public DayPage page(MediaDesk desk, LocalDate selected, LocalDate today) throws IOException {
+        LocalDate now = today == null ? LocalDate.now() : today;
+        LocalDate day = selected == null || selected.isAfter(now) ? now : selected;
+        List<SavedArticle> all = list(desk);
+        List<String> days = all.stream().map(SavedArticle::date).distinct().toList();
+        String key = day.toString();
+        String prev = days.stream().filter(item -> item.compareTo(key) < 0).findFirst().orElse("");
+        String next = "";
+        for (String item : days) {
+            if (item.compareTo(key) > 0) next = item;
+            else break;
+        }
+        int index = days.indexOf(key);
+        return new DayPage(
+                now.toString(),
+                key,
+                days,
+                prev,
+                next,
+                index < 0 ? 0 : index + 1,
+                days.size(),
+                all.stream().filter(item -> key.equals(item.date())).toList());
+    }
+
     public SavedArticle get(String name) throws IOException {
         MediaArticleWriter.Article article = readArticle(name);
         return describe(name, article.titleZh(), article.titleEn());
@@ -138,5 +172,16 @@ public class MediaArchive {
     }
 
     public record SavedArticle(String name, String desk, String date, String time, String title, String titleEn) {
+    }
+
+    public record DayPage(
+            String today,
+            String day,
+            List<String> days,
+            String prevDay,
+            String nextDay,
+            int page,
+            int pages,
+            List<SavedArticle> items) {
     }
 }

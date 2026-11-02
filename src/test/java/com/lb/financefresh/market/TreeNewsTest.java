@@ -7,6 +7,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -97,6 +99,9 @@ class TreeNewsTest {
                 "https://investinglive.com/news/uk-pmi-beats",
                 TreeNews.clean("https://investinglive.com/news/uk-pmi-beats This is a delayed news feed. Please check our Premium product"));
         assertTrue(TreeNews.junk("Satisfied Investor, Congratulations on your profit received"));
+        assertTrue(TreeNews.junk("Congratulation dear trader, you made profit"));
+        assertTrue(TreeNews.junk("We congratulate you on this trade"));
+        assertFalse(TreeNews.junk("U.S. jobless claims surprise to the downside"));
         assertTrue(TreeNews.junk("加微信领取VIP信号"));
     }
 
@@ -178,6 +183,7 @@ class TreeNewsTest {
         int added = news.ingest(List.of(
                 new TreeNews.Flash("forexlive", 12, 1_798_000_000_000L, "USDJPY pops after CPI"),
                 new TreeNews.Flash("forexlive", 13, 1_798_000_000_100L, "Join us in VIP"),
+                new TreeNews.Flash("forexlive", 15, 1_798_000_000_120L, "Congratulation on your successful trade"),
                 new TreeNews.Flash(
                         "forexlive",
                         14,
@@ -191,6 +197,26 @@ class TreeNewsTest {
                 news.latest("forexlive").getFirst().text());
         assertEquals("USDJPY pops after CPI", news.latest("forexlive").get(1).text());
         assertEquals("unusual_whales_TG1/88", news.latest("unusual_whales_TG1").getFirst().id());
+        assertTrue(news.lastError().isBlank());
+    }
+
+    @Test
+    void privateChannelShowsHintWhenListenStops(@TempDir Path dir) {
+        Path file = dir.resolve("tree-news.json");
+        TreeNews news = new TreeNews(new FreshSettings(), null, file);
+        news.ingest(List.of(new TreeNews.Flash(
+                "unusual_whales_TG1",
+                88,
+                Instant.now().minus(Duration.ofHours(13)).toEpochMilli(),
+                "Unusual flow in NVDA calls")));
+        news.flagPrivateChannelGaps();
+        assertTrue(news.lastError().contains("telegram-listen"));
+        news.ingest(List.of(new TreeNews.Flash(
+                "unusual_whales_TG1",
+                89,
+                Instant.now().toEpochMilli(),
+                "More unusual flow in NVDA calls")));
+        news.flagPrivateChannelGaps();
         assertTrue(news.lastError().isBlank());
     }
 

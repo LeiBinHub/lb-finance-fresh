@@ -33,7 +33,7 @@
       margin: 22px 0 8px;
     }
     label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
-    input[type="date"] {
+    input[type="date"], input[type="text"], input[type="file"], textarea {
       font: inherit;
       font-size: 15px;
       padding: 8px 10px;
@@ -41,6 +41,7 @@
       background: var(--card);
       border-radius: 8px;
     }
+    input[type="file"] { padding: 6px 8px; }
     button.action {
       font: inherit;
       font-size: 15px;
@@ -247,14 +248,14 @@
     #listen .item .zh { color: var(--muted); font-size: 13px; margin-top: 4px; }
     #listen .item a { color: var(--accent); font-size: 13px; }
     #listen .empty { color: var(--muted); }
-    #listen .pager {
+    #listen .pager, #media .pager {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       align-items: end;
       margin: 0 0 12px;
     }
-    #listen .pager button {
+    #listen .pager button, #media .pager button {
       font: inherit;
       font-size: 14px;
       padding: 7px 12px;
@@ -263,9 +264,9 @@
       background: var(--card);
       cursor: pointer;
     }
-    #listen .pager button:disabled { opacity: 0.45; cursor: default; }
-    #listen .pager .count { color: var(--muted); font-size: 13px; padding-bottom: 6px; }
-    #media {
+    #listen .pager button:disabled, #media .pager button:disabled { opacity: 0.45; cursor: default; }
+    #listen .pager .count, #media .pager .count { color: var(--muted); font-size: 13px; padding-bottom: 6px; }
+    #media, #filings {
       margin: 0;
       background: var(--card);
       border: 1px solid var(--line);
@@ -273,9 +274,76 @@
       min-height: 280px;
       padding: 12px 16px 18px;
     }
-    #media .head { margin: 0 0 12px; }
-    #media .head h2 { margin: 0 0 4px; font-size: 16px; }
-    #media .head .meta { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+    #media .head, #filings .head { margin: 0 0 12px; }
+    #media .head h2, #filings .head h2 { margin: 0 0 4px; font-size: 16px; }
+    #media .head .meta, #filings .head .meta { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+    .filing-form { margin: 0 0 14px; }
+    .filing-companies {
+      display: grid;
+      gap: 12px;
+      margin: 0 0 14px;
+    }
+    .filing-company {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 14px 14px;
+      background: #fffefb;
+    }
+    .filing-company h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+    }
+    .filing-company .filing-grid {
+      display: grid;
+      grid-template-columns: minmax(110px, 0.7fr) repeat(3, minmax(140px, 1fr));
+      gap: 10px;
+      align-items: start;
+    }
+    .filing-company input[type="file"] { margin: 6px 0 0; }
+    .filing-company .meta { display: block; margin: 4px 0 0; font-size: 12px; }
+    .filing-submit {
+      display: grid;
+      gap: 10px;
+    }
+    .filing-submit textarea {
+      width: 100%;
+      min-height: 72px;
+      resize: vertical;
+    }
+    .filing-submit .hint { margin: 0; color: var(--muted); font-size: 12px; }
+    .filing-submit button { height: 40px; min-width: 220px; justify-self: start; }
+    .filing-links {
+      margin: 12px 0 0;
+      padding: 10px 12px 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+    }
+    .filing-links[hidden] { display: none; }
+    .filing-links .filing-links-head {
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+    .filing-links h4 {
+      margin: 10px 0 4px;
+      font-size: 13px;
+    }
+    .filing-links .meta { margin: 0 0 6px; }
+    .filing-links ul {
+      margin: 0 0 8px;
+      padding: 0 0 0 18px;
+    }
+    .filing-links li { margin: 0 0 6px; word-break: break-all; font-size: 13px; }
+    .filing-links a { color: #2563eb; }
+    .filing-links .note { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    @media (max-width: 900px) {
+      .filing-company .filing-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 720px) {
+      .filing-company .filing-grid,
+      .filing-submit { grid-template-columns: 1fr; }
+    }
     #china-market {
       margin: 0;
       background: var(--card);
@@ -323,14 +391,14 @@
     @media (max-width: 720px) {
       #china-market .split { grid-template-columns: 1fr; }
     }
-    #media-list {
+    #media-list, #filing-list {
       list-style: none;
       margin: 0 0 14px;
       padding: 0;
       display: grid;
       gap: 6px;
     }
-    #media-list button {
+    #media-list button, #filing-list button {
       width: 100%;
       font: inherit;
       text-align: left;
@@ -341,25 +409,39 @@
       padding: 8px 12px;
       cursor: pointer;
     }
-    #media-list button.active { background: #fff7ed; }
-    #media-body { margin: 0; }
-    #media-body.empty { color: var(--muted); white-space: pre-wrap; }
-    #media-body .lang { margin: 0 0 18px; }
-    #media-body .lang h2 {
+    #media-list button.active, #filing-list button.active { background: #fff7ed; }
+    #media-body, #filing-body { margin: 0; }
+    #media-body.empty, #filing-body.empty { color: var(--muted); white-space: pre-wrap; }
+    #media-body .lang, #filing-body .lang { margin: 0 0 18px; }
+    #media-body .lang h2, #filing-body .lang h2 {
       margin: 0 0 8px;
       font-size: 18px;
       font-weight: 650;
     }
-    #media-body .lang .copy {
+    #media-body .lang .copy, #filing-body .lang .copy {
       white-space: pre-wrap;
       font-size: 15px;
-      line-height: 1.7;
-      margin: 0;
+      line-height: 1.75;
+      margin: 0 0 14px;
     }
-    #media-body .divider {
+    #media-body .divider, #filing-body .divider {
       border: 0;
       border-top: 1px solid var(--line);
       margin: 18px 0;
+    }
+    #filing-body .shot {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 12px 0 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    #filing-body .shot-cap {
+      color: var(--muted);
+      font-size: 12px;
+      margin: 0 0 14px;
     }
     #calendar {
       margin: 0;
@@ -408,7 +490,7 @@
 <body>
 <header>
   <h1>美股简报</h1>
-      <p class="note">日期用来打开已保存的简报。点「获取当前时报」会拉取此刻最新数据，并生成一篇美国宏观媒体文章。中国市场是腾讯行情、主力资金和板块榜；中国微观只用这些数据和金十来写文章。</p>
+      <p class="note">日期用来打开已保存的简报。点「获取当前时报」会拉取此刻最新数据，并生成一篇美国宏观媒体文章。中国市场是腾讯行情、主力资金和板块榜；中国微观只用这些数据和金十来写文章。财报研读按公司上传 10-Q、纪要和预期表，最多三家对照。</p>
 </header>
 <main>
   <div class="bar">
@@ -426,6 +508,7 @@
         <button type="button" data-view="calendar" class="sub">财经日历</button>
         <button type="button" data-view="fed">美联储官方讯息</button>
         <button type="button" data-view="listen">监听消息</button>
+        <button type="button" data-view="filings">财报研读</button>
         <button type="button" data-view="media">媒体文章</button>
         <button type="button" data-view="media" data-desk="us-macro" class="sub">美国宏观</button>
         <button type="button" data-view="media" data-desk="us-micro" class="sub">美国微观</button>
@@ -464,6 +547,88 @@
         <nav class="listen-tabs" id="listen-tabs"></nav>
         <div id="listen-body"></div>
       </section>
+      <section id="filings" hidden>
+        <div class="head">
+          <h2>财报研读</h2>
+          <p class="meta">填标的后 DeepSeek 会现查 10-Q、电话会纪要、一致预期表地址。每家分别上传这三类文件。最多三家；只填一家就只研读这一家，填两家或三家就对照。底部可填一个研究话题，空着就按财报本身来写。一次全部提交。</p>
+        </div>
+        <form id="filing-form" class="filing-form">
+          <div class="filing-companies">
+            <article class="filing-company">
+              <h3>公司 1</h3>
+              <div class="filing-grid">
+                <label>标的
+                  <input class="filing-ticker" type="text" placeholder="MSFT" maxlength="12" autocomplete="off">
+                </label>
+                <label>10-Q / 业绩稿
+                  <input class="filing-tenq" type="file" accept=".pdf,.xlsx,.xls,.docx,.doc,application/pdf">
+                  <span class="meta filing-picked">还没选</span>
+                </label>
+                <label>电话会纪要
+                  <input class="filing-transcript" type="file" accept=".pdf,.xlsx,.xls,.docx,.doc,application/pdf">
+                  <span class="meta filing-picked">还没选</span>
+                </label>
+                <label>一致预期表
+                  <input class="filing-consensus" type="file" accept=".pdf,.xlsx,.xls,.docx,.doc,application/pdf">
+                  <span class="meta filing-picked">收入/EPS/分部/capex/FCF</span>
+                </label>
+              </div>
+              <div class="filing-links" hidden></div>
+            </article>
+            <article class="filing-company">
+              <h3>公司 2（对照，可选）</h3>
+              <div class="filing-grid">
+                <label>标的
+                  <input class="filing-ticker" type="text" placeholder="GOOGL" maxlength="12" autocomplete="off">
+                </label>
+                <label>10-Q / 业绩稿
+                  <input class="filing-tenq" type="file" accept=".pdf,.xlsx,.xls,.docx,.doc,application/pdf">
+                  <span class="meta filing-picked">还没选</span>
+                </label>
+                <label>电话会纪要
+                  <input class="filing-transcript" type="file" accept=".pdf,.xlsx,.xls,.docx,.doc,application/pdf">
+                  <span class="meta filing-picked">还没选</span>
+                </label>
+                <label>一致预期表
+                  <input class="filing-consensus" type="file" accept=".pdf,.xlsx,.xls,.docx,.doc,application/pdf">
+                  <span class="meta filing-picked">收入/EPS/分部/capex/FCF</span>
+                </label>
+              </div>
+              <div class="filing-links" hidden></div>
+            </article>
+            <article class="filing-company">
+              <h3>公司 3（对照，可选）</h3>
+              <div class="filing-grid">
+                <label>标的
+                  <input class="filing-ticker" type="text" placeholder="AMZN" maxlength="12" autocomplete="off">
+                </label>
+                <label>10-Q / 业绩稿
+                  <input class="filing-tenq" type="file" accept=".pdf,.xlsx,.xls,.docx,.doc,application/pdf">
+                  <span class="meta filing-picked">还没选</span>
+                </label>
+                <label>电话会纪要
+                  <input class="filing-transcript" type="file" accept=".pdf,.xlsx,.xls,.docx,.doc,application/pdf">
+                  <span class="meta filing-picked">还没选</span>
+                </label>
+                <label>一致预期表
+                  <input class="filing-consensus" type="file" accept=".pdf,.xlsx,.xls,.docx,.doc,application/pdf">
+                  <span class="meta filing-picked">收入/EPS/分部/capex/FCF</span>
+                </label>
+              </div>
+              <div class="filing-links" hidden></div>
+            </article>
+          </div>
+          <div class="filing-submit">
+            <label>研究话题（可选）
+              <textarea id="filing-note" maxlength="800" rows="3" placeholder="空着就按财报本身来写。写了就围绕这件事讨论，比如：谈谈油价对这些厂商的影响"></textarea>
+            </label>
+            <p class="hint">不填则仍是完整财报研读；填了就用这些文件讨论这个话题，不要另开一篇综述。</p>
+            <button id="filing-generate" class="action" type="submit">全部提交，进行分析还有对比</button>
+          </div>
+        </form>
+        <ul id="filing-list"></ul>
+        <div id="filing-body" class="empty">填好至少一家公司的三类文件后会显示在这里。</div>
+      </section>
       <section id="china-market" hidden>
         <h2>中国市场</h2>
         <p class="meta" id="china-market-meta">正在拉取腾讯行情…</p>
@@ -501,6 +666,14 @@
           <h2 id="media-title">美国宏观</h2>
           <p class="meta" id="media-hint">获取时报后会自动生成。</p>
           <button id="media-generate" class="action" type="button" hidden>生成文章</button>
+        </div>
+        <div class="pager">
+          <button type="button" id="media-prev">前一天</button>
+          <label>日期
+            <input id="media-day" type="date">
+          </label>
+          <button type="button" id="media-next">后一天</button>
+          <span class="count" id="media-page"></span>
         </div>
         <ul id="media-list"></ul>
         <div id="media-body" class="empty">选一篇媒体文章。</div>
@@ -541,12 +714,26 @@
   let listenHandle = "";
   let listenDay = "";
   let listenData = null;
+  const filings = document.querySelector("#filings");
+  const filingForm = document.querySelector("#filing-form");
+  const filingNote = document.querySelector("#filing-note");
+  const filingGenerate = document.querySelector("#filing-generate");
+  const filingList = document.querySelector("#filing-list");
+  const filingBody = document.querySelector("#filing-body");
+  let filingName = "";
+  let filingBusy = false;
   const media = document.querySelector("#media");
   const mediaList = document.querySelector("#media-list");
   const mediaBody = document.querySelector("#media-body");
   const mediaTitle = document.querySelector("#media-title");
   const mediaHint = document.querySelector("#media-hint");
   const mediaGenerate = document.querySelector("#media-generate");
+  const mediaDayInput = document.querySelector("#media-day");
+  const mediaPrev = document.querySelector("#media-prev");
+  const mediaNext = document.querySelector("#media-next");
+  const mediaPage = document.querySelector("#media-page");
+  let mediaDay = "";
+  let mediaData = null;
   const chinaMarket = document.querySelector("#china-market");
   const chinaMarketMeta = document.querySelector("#china-market-meta");
   const chinaQuotesGrid = document.querySelector("#china-quotes-grid");
@@ -562,21 +749,21 @@
       title: "美国宏观",
       generate: false,
       hint: "获取时报后会自动生成。",
-      empty: "还没有美国宏观文章。获取时报后会自动生成。"
+      empty: "这一天还没有美国宏观文章。获取时报后会自动生成。"
     },
     "us-micro": {
       title: "美国微观",
       generate: true,
       generateLabel: "生成文章",
       hint: "结合当天 Tree News、Walter Bloomberg、Unusual Whales、ForexLive，并参考当天美国宏观稿。",
-      empty: "还没有美国微观文章。点「生成文章」会结合当天监听消息来写。"
+      empty: "这一天还没有美国微观文章。点「生成文章」会结合当天监听消息来写。"
     },
     "cn-micro": {
       title: "中国微观",
       generate: true,
       generateLabel: "生成文章",
       hint: "用中国市场的腾讯行情、主力资金、板块榜，再加上当天金十快讯写行情文章。",
-      empty: "还没有中国微观文章。点「生成文章」会结合中国市场数据和金十快讯来写。"
+      empty: "这一天还没有中国微观文章。点「生成文章」会结合中国市场数据和金十快讯来写。"
     }
   };
   const log = document.querySelector("#log");
@@ -613,6 +800,7 @@
     fed.hidden = next !== "fed";
     calendar.hidden = next !== "calendar";
     listen.hidden = next !== "listen";
+    filings.hidden = next !== "filings";
     chinaMarket.hidden = next !== "china-market";
     media.hidden = next !== "media";
     log.hidden = next !== "log";
@@ -1215,6 +1403,21 @@
     mediaGenerate.textContent = meta.generateLabel || "生成文章";
   }
 
+  function paintMediaPager(body) {
+    const page = body || {};
+    if (mediaDayInput && page.day) mediaDayInput.value = page.day;
+    if (mediaDayInput && page.today) mediaDayInput.max = page.today;
+    if (mediaPrev) mediaPrev.disabled = !page.prevDay;
+    if (mediaNext) mediaNext.disabled = !page.nextDay;
+    if (mediaPage) {
+      const pages = page.pages || 0;
+      const items = page.items || [];
+      mediaPage.textContent = pages
+          ? ((page.day || "") + " · " + items.length + " 篇 · 第 " + (page.page || "-") + " / " + pages + " 天")
+          : ((page.day || "") + " · " + items.length + " 篇");
+    }
+  }
+
   function renderMediaList(items) {
     mediaList.replaceChildren();
     if (!items || items.length === 0) {
@@ -1231,7 +1434,7 @@
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.name = item.name;
-      button.textContent = item.title + " · " + item.date + " " + item.time;
+      button.textContent = item.title + " · " + item.time;
       button.classList.toggle("active", item.name === mediaName);
       button.addEventListener("click", () => openMedia(item.name));
       li.append(button);
@@ -1284,7 +1487,12 @@
     loading.textContent = "正在读取媒体文章…";
     mediaList.append(loading);
     try {
-      const items = await readJson(await fetch("/api/media?desk=" + encodeURIComponent(mediaDesk)));
+      if (!mediaDay) mediaDay = today();
+      const query = "?desk=" + encodeURIComponent(mediaDesk) + "&day=" + encodeURIComponent(mediaDay);
+      mediaData = await readJson(await fetch("/api/media" + query));
+      if (mediaData && mediaData.day) mediaDay = mediaData.day;
+      const items = mediaData.items || [];
+      paintMediaPager(mediaData);
       renderMediaList(items);
       if (mediaName) {
         const still = items.some((item) => item.name === mediaName);
@@ -1294,6 +1502,8 @@
         await openMedia(items[0].name);
       }
     } catch (error) {
+      mediaData = null;
+      paintMediaPager({ day: mediaDay || today(), today: today(), items: [] });
       renderMediaList([]);
       mediaBody.className = "empty";
       mediaBody.textContent = error.message;
@@ -1306,11 +1516,12 @@
     mediaGenerate.disabled = true;
     setStatus("正在" + (deskMeta().generateLabel || "生成文章") + "…可能要一两分钟。");
     try {
-      const selected = day.value || today();
+      const selected = mediaDay || day.value || today();
       const body = await readJson(await fetch(
           "/api/media/desks/" + encodeURIComponent(mediaDesk) + "?day=" + encodeURIComponent(selected),
           { method: "POST" }));
       mediaName = body.name;
+      if (body.date) mediaDay = body.date;
       await loadMedia();
       paintMediaArticle(body);
       setStatus((body.title || deskMeta().title) + " · " + body.date + " " + body.time);
@@ -1320,6 +1531,276 @@
       mediaBusy = false;
       mediaGenerate.disabled = false;
     }
+  }
+
+  function renderFilingList(items) {
+    filingList.replaceChildren();
+    if (!items || items.length === 0) {
+      const empty = document.createElement("li");
+      empty.className = "empty";
+      empty.textContent = "还没有财报研读。";
+      filingList.append(empty);
+      filingBody.className = "empty";
+      filingBody.textContent = "上传一份财报后会显示在这里。";
+      return;
+    }
+    for (const item of items) {
+      const li = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.name = item.name;
+      const extra = item.ticker ? " · " + item.ticker : "";
+      button.textContent = item.title + extra + " · " + item.date + " " + item.time;
+      button.classList.toggle("active", item.name === filingName);
+      button.addEventListener("click", () => openFiling(item.name));
+      li.append(button);
+      filingList.append(li);
+    }
+  }
+
+  function paintFilingArticle(body) {
+    filingBody.className = "";
+    filingBody.replaceChildren();
+    const zh = document.createElement("section");
+    zh.className = "lang";
+    const zhTitle = document.createElement("h2");
+    zhTitle.textContent = body.titleZh || body.title || "中文版";
+    zh.append(zhTitle);
+    paintFilingCopy(zh, body.bodyZh || "还没有中文正文", body.images || []);
+    const divider = document.createElement("hr");
+    divider.className = "divider";
+    const en = document.createElement("section");
+    en.className = "lang";
+    const enTitle = document.createElement("h2");
+    enTitle.textContent = body.titleEn || "English";
+    en.append(enTitle);
+    paintFilingCopy(en, body.bodyEn || "No English body yet", body.images || []);
+    filingBody.append(zh, divider, en);
+  }
+
+  function paintFilingCopy(container, text, images) {
+    const byId = {};
+    for (const image of images) {
+      if (image && image.id != null) byId[String(image.id)] = image;
+    }
+    const parts = String(text || "").split(/<<<IMG:(\d+)>>>/);
+    for (let i = 0; i < parts.length; i++) {
+      if (i % 2 === 0) {
+        const copy = parts[i].replace(/^\n+|\n+$/g, "");
+        if (!copy) continue;
+        for (const block of copy.split(/\n\s*\n/)) {
+          const para = block.trim();
+          if (!para) continue;
+          const p = document.createElement("p");
+          p.className = "copy";
+          p.textContent = para;
+          container.append(p);
+        }
+        continue;
+      }
+      const image = byId[parts[i]];
+      if (!image || !image.url) continue;
+      const img = document.createElement("img");
+      img.className = "shot";
+      img.src = image.url;
+      img.alt = image.caption || "财报配图";
+      container.append(img);
+      const cap = [image.place, image.caption].filter(Boolean).join(" · ");
+      if (cap) {
+        const note = document.createElement("p");
+        note.className = "shot-cap";
+        note.textContent = cap;
+        container.append(note);
+      }
+    }
+  }
+
+  async function openFiling(name) {
+    filingName = name;
+    const body = await readJson(await fetch("/api/filings/" + encodeURIComponent(name)));
+    paintFilingArticle(body);
+    [...filingList.querySelectorAll("button")].forEach((button) => {
+      button.classList.toggle("active", button.dataset.name === name);
+    });
+    const file = body.originalName ? " · " + body.originalName : "";
+    setStatus(body.title + file + " · " + body.date + " " + body.time);
+  }
+
+  async function loadFilings() {
+    setStatus("财报研读");
+    filingBody.className = "empty";
+    filingBody.textContent = "正在读取…";
+    filingList.replaceChildren();
+    const loading = document.createElement("li");
+    loading.className = "empty";
+    loading.textContent = "正在读取财报研读…";
+    filingList.append(loading);
+    try {
+      const items = await readJson(await fetch("/api/filings"));
+      renderFilingList(items);
+      if (filingName) {
+        const still = items.some((item) => item.name === filingName);
+        if (still) await openFiling(filingName);
+        else filingName = "";
+      } else if (items.length > 0) {
+        await openFiling(items[0].name);
+      }
+    } catch (error) {
+      renderFilingList([]);
+      filingBody.className = "empty";
+      filingBody.textContent = error.message;
+    }
+  }
+
+  async function generateFiling(event) {
+    event.preventDefault();
+    if (filingBusy) return;
+    const companies = collectFilingCompanies();
+    if (companies.error) {
+      setStatus(companies.error, true);
+      return;
+    }
+    filingBusy = true;
+    filingGenerate.disabled = true;
+    const many = companies.items.length > 1;
+    setStatus(many ? "正在对照研读…长研报可能要四五分钟。" : "正在研读这家公司…长研报可能要四五分钟。");
+    try {
+      const data = new FormData();
+      companies.items.forEach((company) => {
+        data.append("ticker", company.ticker);
+        data.append("tenq", company.tenq);
+        data.append("transcript", company.transcript);
+        data.append("consensus", company.consensus);
+      });
+      const note = (filingNote.value || "").trim();
+      if (note) data.append("note", note);
+      const body = await readJson(await fetch("/api/filings", { method: "POST", body: data }));
+      filingName = body.name;
+      clearFilingFiles();
+      await loadFilings();
+      paintFilingArticle(body);
+      setStatus((body.title || "财报研读") + " · " + body.date + " " + body.time);
+    } catch (error) {
+      setStatus(error.message, true);
+    } finally {
+      filingBusy = false;
+      filingGenerate.disabled = false;
+    }
+  }
+
+  function collectFilingCompanies() {
+    const cards = Array.from(document.querySelectorAll(".filing-company"));
+    const items = [];
+    const seen = new Set();
+    for (const card of cards) {
+      const ticker = ((card.querySelector(".filing-ticker") || {}).value || "").trim().toUpperCase();
+      const tenq = fileOf(card.querySelector(".filing-tenq"));
+      const transcript = fileOf(card.querySelector(".filing-transcript"));
+      const consensus = fileOf(card.querySelector(".filing-consensus"));
+      const used = ticker || tenq || transcript || consensus;
+      if (!used) continue;
+      if (!ticker) return { error: "填了文件的公司要写标的，比如 MSFT" };
+      if (!tenq || !transcript || !consensus) {
+        return { error: ticker + " 需要同时上传 10-Q、电话会纪要、一致预期表" };
+      }
+      if (seen.has(ticker)) return { error: "两家公司不要用同一个标的" };
+      seen.add(ticker);
+      items.push({ ticker, tenq, transcript, consensus });
+    }
+    if (!items.length) {
+      return { error: "请至少填一家公司的标的，并上传 10-Q、电话会纪要、一致预期表" };
+    }
+    if (items.length > 3) return { error: "一次最多对照 3 家公司" };
+    return { items };
+  }
+
+  function fileOf(input) {
+    return input && input.files && input.files[0] ? input.files[0] : null;
+  }
+
+  function clearFilingFiles() {
+    document.querySelectorAll(".filing-company input[type='file']").forEach((input) => {
+      input.value = "";
+    });
+    paintFilingPicked();
+  }
+
+  function paintFilingPicked() {
+    document.querySelectorAll(".filing-company").forEach((card) => {
+      paintOnePicked(card.querySelector(".filing-tenq"), "还没选");
+      paintOnePicked(card.querySelector(".filing-transcript"), "还没选");
+      paintOnePicked(card.querySelector(".filing-consensus"), "收入/EPS/分部/capex/FCF");
+    });
+  }
+
+  function paintOnePicked(input, empty) {
+    if (!input) return;
+    const picked = input.parentElement && input.parentElement.querySelector(".filing-picked");
+    if (!picked) return;
+    const file = fileOf(input);
+    picked.textContent = file ? file.name : empty;
+  }
+
+  const filingLinkTimers = new WeakMap();
+  const filingLinkAbort = new WeakMap();
+
+  function scheduleFilingLinks(card) {
+    if (!card) return;
+    const prev = filingLinkTimers.get(card);
+    if (prev) clearTimeout(prev);
+    filingLinkTimers.set(card, setTimeout(() => loadFilingLinks(card), 450));
+  }
+
+  async function loadFilingLinks(card) {
+    const box = card.querySelector(".filing-links");
+    const ticker = ((card.querySelector(".filing-ticker") || {}).value || "").trim().toUpperCase();
+    if (!box) return;
+    const prevAbort = filingLinkAbort.get(card);
+    if (prevAbort) prevAbort.abort();
+    if (!/^[A-Z0-9.]{1,12}$/.test(ticker)) {
+      box.hidden = true;
+      box.innerHTML = "";
+      return;
+    }
+    const abort = new AbortController();
+    filingLinkAbort.set(card, abort);
+    box.hidden = false;
+    box.innerHTML = "<p class=\"meta\">正在用 DeepSeek 找 " + escapeHtml(ticker) + " 的 10-Q、纪要和预期表…</p>";
+    try {
+      const body = await readJson(await fetch(
+          "/api/filing-links?ticker=" + encodeURIComponent(ticker),
+          { signal: abort.signal }));
+      if (abort.signal.aborted) return;
+      paintFilingLinkBody(box, body);
+    } catch (error) {
+      if (error.name === "AbortError") return;
+      box.hidden = false;
+      box.innerHTML = "<p class=\"meta\">" + escapeHtml(error.message || "没有找到链接") + "</p>";
+    }
+  }
+
+  function paintFilingLinkBody(box, materials) {
+    const groups = materials && materials.groups ? materials.groups : [];
+    if (!groups.length) {
+      box.innerHTML = "<p class=\"meta\">模型没有给出可用链接</p>";
+      return;
+    }
+    box.innerHTML = "<p class=\"filing-links-head\">" + escapeHtml(materials.heading || "") + "</p>"
+      + groups.map((group) => {
+        const hint = group.hint ? "<p class=\"meta\">" + escapeHtml(group.hint) + "</p>" : "";
+        const items = (group.items || []).map((item) => {
+          const note = item.note ? "<span class=\"note\">" + escapeHtml(item.note) + "</span>" : "";
+          return "<li>" + escapeHtml(item.label || "") + "：<a href=\"" + escapeHtml(item.url || "")
+            + "\" target=\"_blank\" rel=\"noopener\">" + escapeHtml(item.url || "") + "</a>" + note + "</li>";
+        }).join("");
+        return "<h4>" + escapeHtml(group.title || "") + "</h4>" + hint + "<ul>" + items + "</ul>";
+      }).join("");
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+    }[ch]));
   }
 
   function stopChinaMarket() {
@@ -1785,7 +2266,32 @@
     listenDay = listenData.nextDay;
     loadListen();
   });
+  mediaDayInput.addEventListener("change", () => {
+    if (!mediaDayInput.value) return;
+    mediaDay = mediaDayInput.value;
+    mediaName = "";
+    loadMedia();
+  });
+  mediaPrev.addEventListener("click", () => {
+    if (!mediaData || !mediaData.prevDay) return;
+    mediaDay = mediaData.prevDay;
+    mediaName = "";
+    loadMedia();
+  });
+  mediaNext.addEventListener("click", () => {
+    if (!mediaData || !mediaData.nextDay) return;
+    mediaDay = mediaData.nextDay;
+    mediaName = "";
+    loadMedia();
+  });
   mediaGenerate.addEventListener("click", () => generateMedia());
+  filingForm.addEventListener("submit", (event) => generateFiling(event));
+  filingForm.addEventListener("change", paintFilingPicked);
+  filingForm.addEventListener("input", (event) => {
+    if (event.target && event.target.classList.contains("filing-ticker")) {
+      scheduleFilingLinks(event.target.closest(".filing-company"));
+    }
+  });
   for (const button of menuButtons) {
     button.addEventListener("click", () => {
       if (button.dataset.view === "media") {
@@ -1798,6 +2304,7 @@
       if (button.dataset.view === "fed") loadFed();
       if (button.dataset.view === "calendar") loadCalendar();
       if (button.dataset.view === "listen") loadListen();
+      if (button.dataset.view === "filings") loadFilings();
       if (button.dataset.view === "china-market") loadChinaMarket();
       if (button.dataset.view === "media") loadMedia();
       if (button.dataset.view === "log") loadLogs();

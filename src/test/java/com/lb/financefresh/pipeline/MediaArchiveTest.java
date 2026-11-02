@@ -6,6 +6,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -56,6 +57,40 @@ class MediaArchiveTest {
         assertEquals(1, archive.list(com.lb.financefresh.model.MediaDesk.CN_MICRO).size());
         assertEquals("微观稿", archive.list(com.lb.financefresh.model.MediaDesk.US_MICRO).getFirst().title());
         assertEquals("金十解读", china.title());
+    }
+
+    @Test
+    void pagesTitlesBySelectedDay() throws Exception {
+        MediaArchive archive = new MediaArchive(dir);
+        archive.save(
+                "now-20261016-1130.md",
+                new MediaArticleWriter.Article("十六号上午", "上午。", "Morning", "Morning body."));
+        archive.save(
+                "recap-20261016-1600.md",
+                new MediaArticleWriter.Article("十六号下午", "下午。", "Afternoon", "Afternoon body."));
+        archive.save(
+                "now-20261017-0900.md",
+                new MediaArticleWriter.Article("十七号", "次日。", "Next", "Next body."));
+        java.time.LocalDate today = java.time.LocalDate.of(2026, 10, 18);
+        MediaArchive.DayPage sixteenth = archive.page(
+                com.lb.financefresh.model.MediaDesk.US_MACRO,
+                java.time.LocalDate.of(2026, 10, 16),
+                today);
+        assertEquals("2026-10-16", sixteenth.day());
+        assertEquals(List.of("2026-10-17", "2026-10-16"), sixteenth.days());
+        assertEquals(2, sixteenth.items().size());
+        assertEquals("十六号下午", sixteenth.items().getFirst().title());
+        assertEquals("2026-10-17", sixteenth.nextDay());
+        assertEquals("", sixteenth.prevDay());
+        MediaArchive.DayPage empty = archive.page(
+                com.lb.financefresh.model.MediaDesk.US_MACRO,
+                today,
+                today);
+        assertEquals("2026-10-18", empty.day());
+        assertTrue(empty.items().isEmpty());
+        assertEquals("2026-10-17", empty.prevDay());
+        assertEquals("", empty.nextDay());
+        assertEquals(1, archive.list(com.lb.financefresh.model.MediaDesk.US_MACRO, java.time.LocalDate.of(2026, 10, 17)).size());
     }
 
     @Test

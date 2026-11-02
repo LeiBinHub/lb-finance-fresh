@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -70,7 +71,7 @@ public class TreeNews {
                     + "|how can i invest"
                     + "|send in your request"
                     + "|invest\\s*&\\s*earn"
-                    + "|congratulations on your (?:profit|gain)"
+                    + "|\\bcongratulat"
                     + "|satisfied investor"
                     + "|\\btrade result:"
                     + "|(?:^|\\n)\\s*(?:hi|hey|dear)\\s+(?:everyone|traders?|friends|guys)\\b"
@@ -279,10 +280,30 @@ public class TreeNews {
                 }
             }
         }
+        flagPrivateChannelGaps();
         pulledAt = Instant.now();
         if (added) {
             synchronized (this) {
                 save();
+            }
+        }
+    }
+
+    static String privateStaleHint() {
+        return "这个频道没有网页预览，要靠 telegram-listen 收帖。监听容器停了就不会再进新消息。";
+    }
+
+    void flagPrivateChannelGaps() {
+        long now = Instant.now().toEpochMilli();
+        long stale = Duration.ofHours(12).toMillis();
+        for (Feed feed : FEEDS) {
+            if (feed.webPreview()) continue;
+            List<Item> latest = latest(feed.handle());
+            long newest = latest.isEmpty() ? 0L : latest.getFirst().epoch();
+            if (newest == 0 || now - newest > stale) {
+                channelErrors.put(feed.handle(), privateStaleHint());
+            } else if (privateStaleHint().equals(channelErrors.get(feed.handle()))) {
+                channelErrors.remove(feed.handle());
             }
         }
     }
@@ -334,7 +355,7 @@ public class TreeNews {
         List<Item> pending;
         synchronized (this) {
             pending = items.values().stream()
-                    .filter(item -> item.zh().isBlank() && english(item.text()))
+                    .filter(item -> item.zh().isBlank() && english(item.text()) && !junk(item.text()))
                     .sorted(Comparator.comparingLong(Item::epoch).reversed())
                     .limit(8)
                     .toList();

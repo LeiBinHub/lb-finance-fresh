@@ -178,6 +178,38 @@ public class MarketCollector {
         return new MarketSnapshot(news, List.copyOf(quotes.values()), yieldLine, monitor, released, upcoming, gaps);
     }
 
+    public List<Quote> liveQuotes(List<String> extra) {
+        List<String> symbols = new ArrayList<>();
+        if (extra != null) {
+            for (String symbol : extra) {
+                if (symbol == null || symbol.isBlank()) continue;
+                String code = symbol.strip().toUpperCase();
+                if (!symbols.contains(code)) symbols.add(code);
+            }
+        }
+        for (String symbol : settings.watchlist()) {
+            if (!symbols.contains(symbol)) symbols.add(symbol);
+        }
+        Map<String, Quote> quotes = new LinkedHashMap<>();
+        try {
+            for (Quote quote : alpaca.snapshots(symbols, BriefKind.NOW)) {
+                quotes.put(quote.symbol(), quote);
+            }
+        } catch (Exception e) {
+            log.warn("alpaca snapshots failed: {}", e.toString());
+        }
+        for (String symbol : symbols) {
+            if (quotes.containsKey(symbol)) continue;
+            try {
+                Quote quote = finnhub.quote(symbol, BriefKind.NOW);
+                if (quote != null) quotes.put(symbol, quote);
+            } catch (Exception e) {
+                log.warn("finnhub quote {} failed: {}", symbol, e.toString());
+            }
+        }
+        return List.copyOf(quotes.values());
+    }
+
     private static NewsItem withSentiment(NewsItem item, double sentiment) {
         if (item.sentiment() != 0 || sentiment == 0) return item;
         return new NewsItem(item.source(), item.title(), item.summary(), item.url(), item.symbols(), item.publishedAt(), sentiment);

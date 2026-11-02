@@ -7,12 +7,14 @@ import com.lb.financefresh.market.ChinaMarket;
 import com.lb.financefresh.market.TreeNews;
 import com.lb.financefresh.model.BriefKind;
 import com.lb.financefresh.model.MediaDesk;
+import com.lb.financefresh.model.Quote;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -203,6 +205,10 @@ class MediaArticleWriterTest {
         assertTrue(voice.contains("微信长文"));
         assertTrue(voice.contains("盘面速览"));
         assertTrue(voice.contains("这不是X而是Y"));
+        assertTrue(voice.contains("不要 markdown 表格"));
+        assertTrue(voice.contains("不要对仗"));
+        assertTrue(voice.contains("450 到 800 字"));
+        assertTrue(voice.contains("今天这盘"));
         for (MediaDesk desk : MediaDesk.values()) {
             String prompt = MediaArticleWriter.systemPrompt(desk);
             assertTrue(prompt.contains("写法人味"), desk.id());
@@ -213,7 +219,66 @@ class MediaArticleWriterTest {
         assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.CN_MICRO).contains("腾讯财经最新价"));
         assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.CN_MICRO).contains("主力净流入"));
         assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.CN_MICRO).contains("jin10light"));
+        assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.CN_MICRO).contains("不要把上证"));
         assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.US_MACRO).contains("premarket"));
         assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.US_MACRO).contains("不要开篇把指数和个股报价念一遍"));
+        assertTrue(MediaArticleWriter.systemPrompt(MediaDesk.US_MICRO).contains("盯盘随笔"));
+    }
+
+    @Test
+    void filingPromptUsesFilingTextAndLiveQuotes() throws Exception {
+        String prompt = MediaArticleWriter.systemPromptFiling();
+        assertTrue(prompt.contains("美股财报研读"));
+        assertTrue(prompt.contains("一致预期"));
+        assertTrue(prompt.contains("电话会纪要"));
+        assertTrue(prompt.contains("只有一家"));
+        assertTrue(prompt.contains("两家或三家"));
+        assertTrue(prompt.contains("2500 到 4500 字"));
+        assertFalse(prompt.contains("600 到 1100 字"));
+        assertTrue(prompt.contains("写法人味"));
+        assertTrue(prompt.contains("<<<ZH>>>"));
+        assertTrue(prompt.contains("不要写A股"));
+        assertTrue(prompt.contains("<<<IMG:id>>>"));
+        assertTrue(prompt.contains("普通人"));
+        assertTrue(prompt.contains("不要为了塞图"));
+        assertTrue(prompt.contains("不要炒原文"));
+        assertTrue(prompt.contains("不要 markdown 表格"));
+        assertTrue(prompt.contains("topic 为空"));
+        assertTrue(prompt.contains("topic 非空"));
+        assertTrue(prompt.contains("围绕这个话题"));
+        assertFalse(prompt.contains("1. 开头"));
+        assertFalse(prompt.contains("chinaQuotes"));
+        MediaArticleWriter writer = new MediaArticleWriter(new FreshSettings(), null, new ObjectMapper());
+        Quote quote = new Quote("GOOGL", 165.2, "盘后",
+                new Quote.SessionLeg(164.1, 1.2),
+                null,
+                new Quote.SessionLeg(165.2, 0.67),
+                null);
+        String payload = writer.userPromptFiling(
+                LocalDate.of(2026, 10, 29),
+                "GOOGL-10Q.pdf",
+                "GOOGL",
+                "看云",
+                "Revenue 96.4 billion. Cloud up 34%.",
+                List.of(quote),
+                List.of(new com.lb.financefresh.filing.FilingExtract.Picture(
+                        1, "第3页", "Figure 2 Cloud revenue", "image/png", new byte[]{1, 2, 3}, 200, 120)));
+        JsonNode root = new ObjectMapper().readTree(payload);
+        assertEquals("GOOGL", root.path("ticker").asText());
+        assertEquals("看云", root.path("note").asText());
+        assertEquals("看云", root.path("topic").asText());
+        assertEquals("GOOGL-10Q.pdf", root.path("originalName").asText());
+        assertEquals("GOOGL-10Q.pdf", root.path("files").get(0).asText());
+        assertTrue(root.path("filingText").asText().contains("Cloud up 34%"));
+        assertEquals(165.2, root.path("quotes").get(0).path("lastPrice").asDouble(), 0.001);
+        assertEquals(1, root.path("images").get(0).path("id").asInt());
+        assertEquals("Figure 2 Cloud revenue", root.path("images").get(0).path("caption").asText());
+        assertTrue(root.path("images").get(0).path("bytes").isMissingNode());
+        assertTrue(root.path("chinaQuotes").isMissingNode());
+        assertTrue(root.path("indexFlows").isMissingNode());
+        JsonNode empty = new ObjectMapper().readTree(writer.userPromptFiling(
+                LocalDate.of(2026, 10, 29), "GOOGL-10Q.pdf", "GOOGL", "  ", "Revenue 96.4 billion.", List.of()));
+        assertEquals("", empty.path("topic").asText());
+        assertEquals("", empty.path("note").asText());
     }
 }

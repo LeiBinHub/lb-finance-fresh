@@ -10,8 +10,10 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timedelta
 from pathlib import Path
 
+from backfill import aware, cursor_stop, cutoff_at, utc_now
 from telethon import TelegramClient, events
 from telethon.errors import ChannelPrivateError, FloodWaitError, SessionPasswordNeededError, UserAlreadyParticipantError
 from telethon.tl.functions.channels import JoinChannelRequest
@@ -58,16 +60,54 @@ API_ID = env("TELEGRAM_API_ID")
 API_HASH = env("TELEGRAM_API_HASH")
 SESSION = env("TELEGRAM_SESSION_PATH", "/app/data/telegram")
 INGEST = env("TELEGRAM_INGEST_URL", "http://127.0.0.1:8092/api/tree-news/ingest")
-HISTORY = int(env("TELEGRAM_HISTORY", "80") or "80")
+BACKFILL_DAYS = int(env("TELEGRAM_BACKFILL_DAYS", "7") or "7")
+MAX_BACKFILL = int(env("TELEGRAM_HISTORY", "5000") or "5000")
+BATCH = 80
 
 
 def session_file() -> Path:
     return Path(SESSION + ".session")
 
 
+def cursor_file() -> Path:
+    return Path(SESSION).with_name("telegram-cursor.json")
+
+
 def canonical(handle: str) -> str:
     name = (handle or "").replace("@", "").strip()
     return ALIASES.get(name.lower(), name)
+
+
+def load_cursor() -> dict:
+    path = cursor_file()
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_cursor(payload: dict) -> None:
+    path = cursor_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def mark_pulled(cursor: dict, handle: str | None = None, at: datetime | None = None) -> dict:
+    moment = aware(at) or utc_now()
+    stamp = int(moment.timestamp() * 1000)
+    out = dict(cursor or {})
+    out["pulledAt"] = stamp
+    channels = dict(out.get("channels") or {})
+    if handle:
+        channels[canonical(handle)] = stamp
+    out["channels"] = channels
+    save_cursor(out)
+    return out
 
 
 def post_flashes(rows: list[dict]) -> None:
@@ -106,7 +146,7 @@ def flash(handle: str, message) -> dict | None:
     text = (message.raw_text or "").strip()
     if not text or message.id is None:
         return None
-    date = message.date
+    date = aware(message.date)
     epoch = int(date.timestamp() * 1000) if date is not None else 0
     return {
         "channel": canonical(handle),
@@ -134,14 +174,45 @@ async def ensure_channel(client: TelegramClient, handle: str):
     return entity
 
 
-async def backfill(client: TelegramClient, handle: str, entity) -> int:
-    rows = []
-    async for message in client.iter_messages(entity, limit=HISTORY):
-        item = flash(handle, message)
-        if item:
-            rows.append(item)
-    post_flashes(rows)
-    return len(rows)
+async def backfill(client: TelegramClient, handle: str, entity, since: datetime) -> int:
+    posted = 0
+    rows: list[dict] = []
+    offset_id = 0
+    since_at = aware(since) or utc_now()
+    while posted < MAX_BACKFILL:
+        got = 0
+        hit_old = False
+        try:
+            kwargs = {"limit": 100}
+            if offset_id:
+                kwargs["offset_id"] = offset_id
+            async for message in client.iter_messages(entity, **kwargs):
+                got += 1
+                offset_id = message.id
+                date = aware(message.date)
+                if date is not None and date < since_at:
+                    hit_old = True
+                    break
+                item = flash(handle, message)
+                if item:
+                    rows.append(item)
+                if len(rows) >= BATCH:
+                    post_flashes(rows)
+                    posted += len(rows)
+                    rows = []
+                if posted >= MAX_BACKFILL:
+                    break
+        except FloodWaitError as exc:
+            print(f"@{handle} 回补限流，等待 {exc.seconds}s", flush=True)
+            await asyncio.sleep(exc.seconds + 1)
+            continue
+        if rows:
+            post_flashes(rows)
+            posted += len(rows)
+            rows = []
+        if hit_old or got == 0 or got < 100 or posted >= MAX_BACKFILL:
+            break
+    return posted
 
 
 async def listen_once() -> None:
@@ -162,11 +233,21 @@ async def listen_once() -> None:
         print("这个账号开了两步验证，登录时还要输入云密码。", flush=True)
         raise
 
+    cursor = load_cursor()
+    since = cutoff_at(utc_now(), cursor_stop(cursor), BACKFILL_DAYS)
+    print(
+        f"回补从 {since.astimezone().strftime('%Y-%m-%d %H:%M:%S')} 起"
+        + ("（上次停止后不足一周）" if cursor_stop(cursor) and cursor_stop(cursor) > utc_now() - timedelta(days=BACKFILL_DAYS) else f"（默认 {BACKFILL_DAYS} 天）"),
+        flush=True,
+    )
+
     entities = {}
+    filled = 0
     for handle in CHANNELS:
         try:
             entities[handle] = await ensure_channel(client, handle)
-            n = await backfill(client, handle, entities[handle])
+            n = await backfill(client, handle, entities[handle], since)
+            filled += 1
             print(f"已接入 @{handle}，回补 {n} 条", flush=True)
         except ChannelPrivateError:
             print(f"@{handle} 是私密频道，需要先在 Telegram App 里用邀请链接加入", flush=True)
@@ -176,19 +257,33 @@ async def listen_once() -> None:
         except Exception as exc:
             print(f"@{handle} 接入失败: {type(exc).__name__}: {exc}", flush=True)
 
+    if filled:
+        cursor = mark_pulled(cursor)
+
     @client.on(events.NewMessage(chats=list(entities.values()) or CHANNELS))
     async def on_new(event):
         item = flash(handle_of(event), event.message)
         if item:
             try:
                 post_flashes([item])
+                nonlocal cursor
+                cursor = mark_pulled(cursor, handle_of(event))
             except Exception as exc:
                 print(f"投递失败: {type(exc).__name__}", flush=True)
 
     print("账号监听已就绪，等待新帖。", flush=True)
+
+    async def heartbeat():
+        while True:
+            await asyncio.sleep(600)
+            print("监听仍在线，等待新帖。", flush=True)
+
+    beat = asyncio.create_task(heartbeat())
     try:
         await client.run_until_disconnected()
     finally:
+        beat.cancel()
+        mark_pulled(cursor)
         await client.disconnect()
 
 
@@ -205,7 +300,7 @@ async def run() -> None:
         print("手机 App 已登录、已关注频道，不等于这段程序已登录。", flush=True)
         print("在 lb-finance-fresh 目录执行一次：", flush=True)
         print("  docker compose run --rm -it telegram-listen", flush=True)
-        print("按提示输入手机号和验证码，生成 data/telegram.session 后即可持续收帖。", flush=True)
+        print("按提示输入手机号和验证码，生成 data/telegram.session 后即持续收帖。", flush=True)
         while True:
             await asyncio.sleep(60)
         return
